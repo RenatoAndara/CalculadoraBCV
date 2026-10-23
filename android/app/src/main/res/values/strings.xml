@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Calculadora BCV</string>
+    <string name="title_activity_main">Calculadora BCV</string>
+    <string name="package_name">com.calculadora.bcv</string>
+    <string name="custom_url_scheme">com.calculadora.bcv</string>
+</resources>

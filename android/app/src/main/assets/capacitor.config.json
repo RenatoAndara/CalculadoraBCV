@@ -1,0 +1,11 @@
+{
+	"appId": "com.calculadora.bcv",
+	"appName": "Calculadora BCV",
+	"webDir": "dist",
+	"backgroundColor": "#0f172a",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": false
+	},
+	"plugins": {}
+}
