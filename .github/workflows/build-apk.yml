@@ -1,0 +1,52 @@
+name: Compilar APK Android
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Compilar APK Standalone
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar Dependencias Web
+        run: npm ci
+
+      - name: Ejecutar Pruebas Automatizadas
+        run: npm test
+
+      - name: Compilar Frontend de Producción
+        run: npm run build
+
+      - name: Sincronizar con Capacitor Android
+        run: npx cap sync android
+
+      - name: Configurar Java 17 para Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Gradle y Compilar APK Release
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+
+      - name: Subir APK como Artefacto Descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Calculadora-BCV-Android-APK
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
