@@ -1,0 +1,20 @@
+{
+  "name": "Calculadora Tasas BCV",
+  "short_name": "Tasas BCV",
+  "description": "Calculadora standalone de conversión de Dólares y Euros a Bolívares conectada a tasas oficiales del BCV.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "categories": ["finance", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
