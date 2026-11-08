@@ -4,6 +4,22 @@ Todas las modificaciones notables de este proyecto están documentadas en este a
 
 ---
 
+## [1.3.0] - 2026-11-08
+
+### 🚀 Novedades: Motor Dual de Tasas BCV (Vigente vs Próximo Día Hábil)
+- **Soporte de doble tasa en vivo y alternancia instantánea:**
+  - Implementada la opción para alternar entre la **Tasa Vigente de Hoy** (tasa de facturación legal del día) y la **Tasa Publicada para el Próximo Día Hábil** (emitida por el BCV entre 4:30 pm y 5:30 pm o durante fines de semana).
+  - Añadido un selector interactivo tipo cápsula en [`src/components/Header.tsx`](src/components/Header.tsx) con iconos accesibles (`Clock` y `Calendar`).
+  - Recálculo matemático inmediato en 0 ms en toda la aplicación (`Calculator`, `TaxCalculator`, tarjetas de divisas) sin recargar la página.
+- **Estructura de datos y persistencia histórica:**
+  - Actualizado [`public/bcv_rates.json`](public/bcv_rates.json) con el objeto estructurado `rates.current`, `rates.next` y el array acumulativo `history` (últimos 30 registros), manteniendo retrocompatibilidad total con las claves raíz `usd`, `eur` y `fecha_valor`.
+  - Actualizado [`scripts/update_bcv_rates.py`](scripts/update_bcv_rates.py) para promover de manera automática la tasa previa a `current` al detectar una nueva `Fecha Valor`.
+  - Persistencia de la preferencia de tasa en `localStorage` mediante `rateScheduleMode` ('current' | 'next') y soporte offline garantizado en el Service Worker.
+- **Suite de pruebas:**
+  - Añadidos casos de prueba en [`src/services/calculation.test.ts`](src/services/calculation.test.ts) validando la conmutación entre ambas tasas.
+
+---
+
 ## [1.2.0] - 2026-11-08
 
 ### 🚀 Novedades y Automatización Oficial

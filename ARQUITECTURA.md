@@ -73,6 +73,11 @@ graph TD
 - **PWA (Progressive Web App):** Service Worker en `public/sw.js` con estrategia *stale-while-revalidate* para activos estáticos y precarga de `bcv_rates.json`.
 - **Nativo (Android):** Puente de Capacitor configurado en `capacitor.config.ts` y proyecto Gradle en `android/`.
 
+### 2.4 Motor Dual de Tasas (BCV Dual Engine)
+- **Separación Lógica:** Diferencia entre la *Tasa Vigente* (`rates.current`) para facturación legal del día y la *Tasa Próximo Día Hábil* (`rates.next`) emitida por el BCV al cierre interbancario de la tarde o en fines de semana.
+- **Alternancia Declarativa:** `App.tsx` computa en tiempo real `effectiveRates` mediante `useMemo` en función del modo seleccionado (`rateScheduleMode`), manteniendo el estado desacoplado y garantizando un tiempo de respuesta de 0 ms.
+- **Historial Acumulativo:** Almacenamiento rodante de los últimos 30 días hábiles en `public/bcv_rates.json`, manteniendo retrocompatibilidad absoluta con versiones previas.
+
 ---
 
 ## 3. Optimizaciones de Rendimiento Implementadas
@@ -93,12 +98,3 @@ En cumplimiento con la guía de rendimiento (31 recomendaciones de optimización
 ### 3.3 Skeletons de Carga (Recomendación #1)
 - Se añadieron marcadores de posición animados en `Header.tsx` mediante Tailwind (`animate-pulse bg-slate-700/60 rounded h-6 w-24`).
 - **Impacto:** Evita el cambio acumulativo de diseño (*Cumulative Layout Shift* - CLS = 0) al iniciar la aplicación antes de recibir los datos.
-
-### 3.4 División de Código y Vendor Chunks (Recomendación #22)
-- En `vite.config.ts`, se configuró `manualChunks`:
-  - `vendor`: React y React-DOM (~65 KB gzip) separados en un chunk independiente que se almacena permanentemente en la caché del navegador.
-  - `icons`: Lucide React (~5 KB gzip).
-  - `index`: Lógica de la aplicación reducida a solo **24 KB**.
-
-### 3.5 Eliminación de Código Muerto y Activos Inútiles (Recomendación #11)
-- Se eliminaron del bundle activos heredados de la plantilla inicial (`src/App.css`, `hero.png`, `react.svg`, `vite.svg`), reduciendo el tamaño total del paquete web y del APK de Android.

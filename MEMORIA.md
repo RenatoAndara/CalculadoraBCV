@@ -78,8 +78,15 @@ El servicio `getLiveRates()` ejecuta de forma secuencial las siguientes fuentes:
 4. **Fuente 3 (BCV Today):** Espejo estático de alta disponibilidad.
 5. **Caché Local Offline:** Último valor exitoso guardado en `localStorage` del dispositivo.
 
+### 3.5 Motor Dual de Tasas BCV (Tasa Vigente vs Tasa Próximo Día Hábil)
+Entre las 4:30 pm y las 5:30 pm (hora Venezuela), el BCV calcula y publica la tasa de cambio con *Fecha Valor del siguiente día hábil* (ej. viernes por la tarde publica la tasa del lunes).
+Para resolver la necesidad tanto contable (facturación legal con la tasa vigente del día) como comercial (cotizaciones anticipadas):
+1. **Conservación de la tasa previa:** El extractor en Python no descarta el valor anterior; promueve la tasa previa a `rates.current` (Tasa Vigente) y la recién publicada a `rates.next` (Tasa Próximo Día Hábil).
+2. **Alternancia instantánea en la interfaz:** El usuario cuenta con un selector en la cabecera para conmutar entre ambas tasas en 0 ms sin recargar ni realizar peticiones adicionales.
+3. **Persistencia y modo offline:** Ambas tasas se guardan en `localStorage` y en el Service Worker, permitiendo alternar y calcular incluso sin conexión a internet.
+
 ---
 
 ## 4. Estado de Conectividad y Persistencia
 - **Detección Online/Offline:** Monitoreo activo de eventos de red `window.online` y `window.offline`.
-- **Persistencia de Preferencias:** La divisa seleccionada (USD/EUR), el sentido de conversión y las casillas de IVA/IGTF se conservan automáticamente entre sesiones mediante `localStorage`.
+- **Persistencia de Preferencias:** La divisa seleccionada (USD/EUR), el sentido de conversión, la modalidad de tasa elegida (vigente o próximo día) y las casillas de IVA/IGTF se conservan automáticamente entre sesiones mediante `localStorage`.
