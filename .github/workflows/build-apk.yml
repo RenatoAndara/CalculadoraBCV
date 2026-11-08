@@ -39,9 +39,16 @@ jobs:
         run: npm run build
 
       - name: Sincronizar con Capacitor Android
+        env:
+          XDG_CONFIG_HOME: /tmp/cfg
+          XDG_DATA_HOME: /tmp/data
+          XDG_STATE_HOME: /tmp/state
+          XDG_CACHE_HOME: /tmp/cache
+          CAPACITOR_TELEMETRY: '0'
         run: |
-          mkdir -p ~/.config/capacitor
-          npx @capacitor/cli sync android
+          mkdir -p /tmp/cfg /tmp/data /tmp/state /tmp/cache
+          npx cap telemetry off || true
+          npx cap sync android
 
       - name: Configurar Gradle y Compilar APK Debug
         run: |
