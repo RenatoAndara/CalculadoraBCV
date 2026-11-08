@@ -7,7 +7,7 @@ interface QuickAmountsProps {
   onSelectAmount: (val: string) => void;
 }
 
-export const QuickAmounts: React.FC<QuickAmountsProps> = ({
+const QuickAmountsComponent: React.FC<QuickAmountsProps> = ({
   direction,
   selectedCurrency,
   onSelectAmount,
@@ -40,3 +40,5 @@ export const QuickAmounts: React.FC<QuickAmountsProps> = ({
     </div>
   );
 };
+
+export const QuickAmounts = React.memo(QuickAmountsComponent);

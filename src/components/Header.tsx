@@ -11,7 +11,7 @@ interface HeaderProps {
   onSelectCurrency: (curr: 'USD' | 'EUR') => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+const HeaderComponent: React.FC<HeaderProps> = ({
   rates,
   isLoading,
   onRefresh,
@@ -78,9 +78,15 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             <TrendingUp className="w-3.5 h-3.5 text-emerald-500/70" />
           </div>
-          <div className="text-lg font-black text-white tracking-tight">
-            {formatRate(rates.usd)}{' '}
-            <span className="text-xs font-semibold text-slate-400">Bs.</span>
+          <div className="text-lg font-black text-white tracking-tight flex items-baseline">
+            {isLoading && (!rates.usd || rates.usd <= 0) ? (
+              <span className="inline-block h-6 w-24 bg-slate-700/60 rounded animate-pulse my-0.5" />
+            ) : (
+              <>
+                {formatRate(rates.usd)}{' '}
+                <span className="text-xs font-semibold text-slate-400 ml-1">Bs.</span>
+              </>
+            )}
           </div>
         </button>
 
@@ -103,9 +109,15 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             <TrendingUp className="w-3.5 h-3.5 text-cyan-500/70" />
           </div>
-          <div className="text-lg font-black text-white tracking-tight">
-            {formatRate(rates.eur)}{' '}
-            <span className="text-xs font-semibold text-slate-400">Bs.</span>
+          <div className="text-lg font-black text-white tracking-tight flex items-baseline">
+            {isLoading && (!rates.eur || rates.eur <= 0) ? (
+              <span className="inline-block h-6 w-24 bg-slate-700/60 rounded animate-pulse my-0.5" />
+            ) : (
+              <>
+                {formatRate(rates.eur)}{' '}
+                <span className="text-xs font-semibold text-slate-400 ml-1">Bs.</span>
+              </>
+            )}
           </div>
         </button>
       </div>
@@ -125,3 +137,5 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
+export const Header = React.memo(HeaderComponent);

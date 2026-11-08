@@ -9,7 +9,7 @@ interface CurrencySelectorProps {
   onToggleDirection: () => void;
 }
 
-export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
+const CurrencySelectorComponent: React.FC<CurrencySelectorProps> = ({
   selectedCurrency,
   direction,
   onSelectCurrency,
@@ -83,3 +83,5 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
     </div>
   );
 };
+
+export const CurrencySelector = React.memo(CurrencySelectorComponent);
