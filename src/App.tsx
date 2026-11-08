@@ -9,7 +9,7 @@ import { TaxCalculator } from './components/TaxCalculator';
 import { Footer } from './components/Footer';
 import { getLiveRates } from './services/rates';
 import { getStoredPrefs, getStoredRates, savePrefsToStorage } from './services/storage';
-import type { ConversionDirection, ExchangeRates } from './types';
+import type { ConversionDirection, ExchangeRates, RateScheduleMode } from './types';
 
 export const App: React.FC = () => {
   // Estado de tasas con carga inmediata de caché para arranque a velocidad instantánea (0ms)
@@ -30,6 +30,9 @@ export const App: React.FC = () => {
   });
   const [includeIGTF, setIncludeIGTF] = useState<boolean>(() => {
     return getStoredPrefs().includeIGTF || false;
+  });
+  const [rateScheduleMode, setRateScheduleMode] = useState<RateScheduleMode>(() => {
+    return getStoredPrefs().rateScheduleMode || 'next';
   });
 
   // Estado de la calculadora
@@ -131,6 +134,32 @@ export const App: React.FC = () => {
     });
   }, []);
 
+  const handleSelectScheduleMode = useCallback((mode: RateScheduleMode) => {
+    setRateScheduleMode(mode);
+    savePrefsToStorage({ rateScheduleMode: mode });
+  }, []);
+
+  // Calcular las tasas efectivas según la selección: Vigente Hoy vs Próximo Día Hábil
+  const effectiveRates = React.useMemo<ExchangeRates>(() => {
+    if (rateScheduleMode === 'current' && rates.rates?.current) {
+      return {
+        ...rates,
+        usd: rates.rates.current.usd,
+        eur: rates.rates.current.eur,
+        date: rates.rates.current.fecha_valor,
+      };
+    }
+    if (rates.rates?.next) {
+      return {
+        ...rates,
+        usd: rates.rates.next.usd,
+        eur: rates.rates.next.eur,
+        date: rates.rates.next.fecha_valor,
+      };
+    }
+    return rates;
+  }, [rates, rateScheduleMode]);
+
   // Botón de Reset para limpiar entradas de datos
   const handleReset = useCallback(() => {
     setInputAmount('');
@@ -164,19 +193,21 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Encabezado con tasas oficiales y botón de refrescar */}
+        {/* Encabezado con tasas oficiales, selector dual vigente/próx día y botón de refrescar */}
         <Header
-          rates={rates}
+          rates={effectiveRates}
           isLoading={isLoading}
           onRefresh={handleFetchRates}
           selectedCurrency={selectedCurrency}
           onSelectCurrency={handleSelectCurrency}
+          rateScheduleMode={rateScheduleMode}
+          onSelectScheduleMode={handleSelectScheduleMode}
         />
 
         {/* Indicador de conexión / offline */}
         <OfflineBadge
           isOffline={isOffline}
-          rates={rates}
+          rates={effectiveRates}
           lastSyncTime={rates.lastChecked}
         />
 
@@ -197,7 +228,7 @@ export const App: React.FC = () => {
 
         {/* Calculadora principal con botón de Reset y copiado */}
         <Calculator
-          rates={rates}
+          rates={effectiveRates}
           selectedCurrency={selectedCurrency}
           direction={direction}
           inputAmount={inputAmount}

@@ -52,6 +52,8 @@ async function fetchFromBcvDirect(): Promise<ExchangeRates> {
         sourceName: 'BCV Oficial (Directo)',
         date: data.fecha_valor || data.fecha_valor_iso || new Date().toISOString(),
         lastChecked: Date.now(),
+        rates: data.rates || undefined,
+        history: data.history || undefined,
       };
     } catch (e) {
       lastError = e;

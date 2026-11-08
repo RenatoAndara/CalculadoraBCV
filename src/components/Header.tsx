@@ -1,6 +1,6 @@
 import React from 'react';
-import { RefreshCw, TrendingUp } from 'lucide-react';
-import type { ExchangeRates } from '../types';
+import { RefreshCw, TrendingUp, Calendar, Clock } from 'lucide-react';
+import type { ExchangeRates, RateScheduleMode } from '../types';
 import { formatRate } from '../utils/formatters';
 
 interface HeaderProps {
@@ -9,6 +9,8 @@ interface HeaderProps {
   onRefresh: () => void;
   selectedCurrency: 'USD' | 'EUR';
   onSelectCurrency: (curr: 'USD' | 'EUR') => void;
+  rateScheduleMode?: RateScheduleMode;
+  onSelectScheduleMode?: (mode: RateScheduleMode) => void;
 }
 
 const HeaderComponent: React.FC<HeaderProps> = ({
@@ -17,6 +19,8 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   onRefresh,
   selectedCurrency,
   onSelectCurrency,
+  rateScheduleMode = 'next',
+  onSelectScheduleMode,
 }) => {
   return (
     <header className="w-full space-y-3">
@@ -57,15 +61,46 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Tarjetas interactivas de Tasas Oficiales */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Selector de Tasa Vigente vs Tasa Próximo Día Hábil (BCV Dual Engine) */}
+      {rates.rates?.current && rates.rates?.next && (
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-inner">
+          <button
+            type="button"
+            onClick={() => onSelectScheduleMode?.('current')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
+              rateScheduleMode === 'current'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{rates.rates.current.short_label || 'Tasa Vigente'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectScheduleMode?.('next')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
+              rateScheduleMode === 'next'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{rates.rates.next.short_label || 'Próx. Día'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tarjetas de tasas USD y EUR */}
+      <div className="grid grid-cols-2 gap-3">
         {/* Tarjeta USD */}
         <button
           type="button"
           onClick={() => onSelectCurrency('USD')}
-          className={`relative p-3 rounded-2xl text-left border transition-all ${
+          className={`p-3 rounded-2xl border transition-all text-left ${
             selectedCurrency === 'USD'
-              ? 'bg-gradient-to-br from-emerald-950/60 to-slate-900/90 border-emerald-500 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-500/50'
+              ? 'bg-gradient-to-b from-slate-800 to-slate-850 border-emerald-500/60 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/30'
               : 'bg-slate-800/40 border-slate-700/60 hover:border-slate-600'
           }`}
         >
@@ -94,9 +129,9 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={() => onSelectCurrency('EUR')}
-          className={`relative p-3 rounded-2xl text-left border transition-all ${
+          className={`p-3 rounded-2xl border transition-all text-left ${
             selectedCurrency === 'EUR'
-              ? 'bg-gradient-to-br from-cyan-950/60 to-slate-900/90 border-cyan-500 shadow-lg shadow-cyan-950/40 ring-1 ring-cyan-500/50'
+              ? 'bg-gradient-to-b from-slate-800 to-slate-850 border-cyan-500/60 shadow-lg shadow-cyan-950/30 ring-1 ring-cyan-500/30'
               : 'bg-slate-800/40 border-slate-700/60 hover:border-slate-600'
           }`}
         >
