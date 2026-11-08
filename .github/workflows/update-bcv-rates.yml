@@ -1,0 +1,41 @@
+name: Actualizar Tasas Oficiales BCV
+
+on:
+  schedule:
+    # Lunes a Viernes a las 09:00, 13:00, 17:00 y 19:00 hora de Venezuela (UTC-4) -> 13, 17, 21, 23 UTC
+    - cron: '0 13,17,21,23 * * 1-5'
+  workflow_dispatch: # Permite ejecutar manualmente con un clic en GitHub Actions
+
+permissions:
+  contents: write
+
+jobs:
+  update-rates:
+    name: Extraer y Actualizar Tasas BCV
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Ejecutar Extractor BCV
+        id: bcv
+        run: python scripts/update_bcv_rates.py
+
+      - name: Verificar y Guardar Cambios
+        run: |
+          if [ -n "$(git status --porcelain public/bcv_rates.json)" ]; then
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git add public/bcv_rates.json
+            git commit -m "chore(tasas): actualizar tasas oficiales BCV (USD: ${{ steps.bcv.outputs.usd }} | EUR: ${{ steps.bcv.outputs.eur }}) [skip ci]"
+            git push
+            echo "Tasas actualizadas y enviadas al repositorio."
+          else
+            echo "No hubo cambios en las tasas oficiales del BCV."
+          fi

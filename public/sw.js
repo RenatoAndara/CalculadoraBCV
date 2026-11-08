@@ -5,7 +5,8 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.webmanifest',
   '/app-icon.svg',
-  '/favicon.svg'
+  '/favicon.svg',
+  '/bcv_rates.json'
 ];
 
 self.addEventListener('install', (event) => {
