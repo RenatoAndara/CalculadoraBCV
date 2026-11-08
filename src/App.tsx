@@ -101,34 +101,40 @@ export const App: React.FC = () => {
     setDeferredPrompt(null);
   };
 
-  // Guardar preferencias cuando cambian
-  const handleSelectCurrency = (curr: 'USD' | 'EUR') => {
+  // Guardar preferencias cuando cambian (memorizados para evitar re-renderizados en cascada)
+  const handleSelectCurrency = useCallback((curr: 'USD' | 'EUR') => {
     setSelectedCurrency(curr);
     savePrefsToStorage({ lastCurrency: curr });
-  };
+  }, []);
 
-  const handleToggleDirection = () => {
-    const newDir: ConversionDirection = direction === 'TO_VES' ? 'FROM_VES' : 'TO_VES';
-    setDirection(newDir);
-    savePrefsToStorage({ direction: newDir });
-  };
+  const handleToggleDirection = useCallback(() => {
+    setDirection((prev) => {
+      const newDir: ConversionDirection = prev === 'TO_VES' ? 'FROM_VES' : 'TO_VES';
+      savePrefsToStorage({ direction: newDir });
+      return newDir;
+    });
+  }, []);
 
-  const handleToggleIVA = () => {
-    const next = !includeIVA;
-    setIncludeIVA(next);
-    savePrefsToStorage({ includeIVA: next });
-  };
+  const handleToggleIVA = useCallback(() => {
+    setIncludeIVA((prev) => {
+      const next = !prev;
+      savePrefsToStorage({ includeIVA: next });
+      return next;
+    });
+  }, []);
 
-  const handleToggleIGTF = () => {
-    const next = !includeIGTF;
-    setIncludeIGTF(next);
-    savePrefsToStorage({ includeIGTF: next });
-  };
+  const handleToggleIGTF = useCallback(() => {
+    setIncludeIGTF((prev) => {
+      const next = !prev;
+      savePrefsToStorage({ includeIGTF: next });
+      return next;
+    });
+  }, []);
 
   // Botón de Reset para limpiar entradas de datos
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setInputAmount('');
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-between selection:bg-emerald-500 selection:text-slate-950">

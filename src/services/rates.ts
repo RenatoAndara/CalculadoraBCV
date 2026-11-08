@@ -22,6 +22,46 @@ async function fetchWithTimeout(url: string, timeoutMs = 6000): Promise<Response
 }
 
 /**
+ * Proveedor Principal: BCV Directo Oficial (GitHub Actions)
+ * Extraído directamente del portal oficial bcv.org.ve mediante Python en GitHub Actions.
+ */
+async function fetchFromBcvDirect(): Promise<ExchangeRates> {
+  const endpoints = [
+    'https://cdn.jsdelivr.net/gh/RenatoAndara/CalculadoraBCV@main/public/bcv_rates.json',
+    'https://raw.githubusercontent.com/RenatoAndara/CalculadoraBCV/main/public/bcv_rates.json',
+  ];
+
+  let lastError: unknown;
+  for (const url of endpoints) {
+    try {
+      const response = await fetchWithTimeout(url, 4000);
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const usd = Number(data?.usd);
+      const eur = Number(data?.eur);
+
+      if (!usd || !eur || isNaN(usd) || isNaN(eur)) {
+        continue;
+      }
+
+      return {
+        usd,
+        eur,
+        source: 'bcv-direct',
+        sourceName: 'BCV Oficial (Directo)',
+        date: data.fecha_valor || data.fecha_valor_iso || new Date().toISOString(),
+        lastChecked: Date.now(),
+      };
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  throw new Error(`BCV Directo no disponible: ${lastError}`);
+}
+
+/**
  * Proveedor 1: DolarApi (ve.dolarapi.com)
  * Basado en la iniciativa Open Source venezolana
  */
@@ -125,42 +165,66 @@ async function fetchFromBcvToday(): Promise<ExchangeRates> {
   };
 }
 
+// Variable para deduplicar llamadas en curso (Evita llamadas duplicadas a la API)
+let activeFetchPromise: Promise<{ rates: ExchangeRates; isOffline: boolean; errorNotice?: string }> | null = null;
+
 /**
- * Servicio unificado con Conmutación por Falla (Fallback)
+ * Servicio unificado con Conmutación por Falla (Fallback) y Deduplicación de llamadas
  */
-export async function getLiveRates(): Promise<{ rates: ExchangeRates; isOffline: boolean; errorNotice?: string }> {
-  // Intentar Fuente 1: DolarApi
-  try {
-    const rates = await fetchFromDolarApi();
-    saveRatesToStorage(rates);
-    return { rates, isOffline: false };
-  } catch (err1) {
-    console.warn('Fallo en DolarApi, conmutando a CromStudio...', err1);
+export function getLiveRates(): Promise<{ rates: ExchangeRates; isOffline: boolean; errorNotice?: string }> {
+  if (activeFetchPromise) {
+    return activeFetchPromise;
   }
 
-  // Intentar Fuente 2: CromStudio
-  try {
-    const rates = await fetchFromCromStudio();
-    saveRatesToStorage(rates);
-    return { rates, isOffline: false };
-  } catch (err2) {
-    console.warn('Fallo en CromStudio, conmutando a BCV Today...', err2);
-  }
+  activeFetchPromise = (async () => {
+    try {
+      // Intentar Fuente 0: BCV Directo Oficial (GitHub Actions / jsDelivr CDN)
+      try {
+        const rates = await fetchFromBcvDirect();
+        saveRatesToStorage(rates);
+        return { rates, isOffline: false };
+      } catch (err0) {
+        console.warn('Fallo en BCV Directo, conmutando a DolarApi...', err0);
+      }
 
-  // Intentar Fuente 3: BCV Today
-  try {
-    const rates = await fetchFromBcvToday();
-    saveRatesToStorage(rates);
-    return { rates, isOffline: false };
-  } catch (err3) {
-    console.warn('Fallo en BCV Today, recurriendo a memoria local offline...', err3);
-  }
+      // Intentar Fuente 1: DolarApi
+      try {
+        const rates = await fetchFromDolarApi();
+        saveRatesToStorage(rates);
+        return { rates, isOffline: false };
+      } catch (err1) {
+        console.warn('Fallo en DolarApi, conmutando a CromStudio...', err1);
+      }
 
-  // Si todas las fuentes fallan (dispositivo sin internet o modo avión)
-  const cached = getStoredRates();
-  return {
-    rates: cached,
-    isOffline: true,
-    errorNotice: 'Sin conexión a internet. Mostrando la última tasa guardada en el dispositivo.',
-  };
+      // Intentar Fuente 2: CromStudio
+      try {
+        const rates = await fetchFromCromStudio();
+        saveRatesToStorage(rates);
+        return { rates, isOffline: false };
+      } catch (err2) {
+        console.warn('Fallo en CromStudio, conmutando a BCV Today...', err2);
+      }
+
+      // Intentar Fuente 3: BCV Today
+      try {
+        const rates = await fetchFromBcvToday();
+        saveRatesToStorage(rates);
+        return { rates, isOffline: false };
+      } catch (err3) {
+        console.warn('Fallo en BCV Today, recurriendo a memoria local offline...', err3);
+      }
+
+      // Si todas las fuentes fallan (dispositivo sin internet o modo avión)
+      const cached = getStoredRates();
+      return {
+        rates: cached,
+        isOffline: true,
+        errorNotice: 'Sin conexión a internet. Mostrando la última tasa guardada en el dispositivo.',
+      };
+    } finally {
+      activeFetchPromise = null;
+    }
+  })();
+
+  return activeFetchPromise;
 }

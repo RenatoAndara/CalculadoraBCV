@@ -6,7 +6,7 @@ export interface ExchangeRates {
   usd: number;
   eur: number;
   usdParalelo?: number;
-  source: 'dolarapi' | 'cromstudio' | 'bcvtoday' | 'cache' | 'manual';
+  source: 'bcv-direct' | 'dolarapi' | 'cromstudio' | 'bcvtoday' | 'cache' | 'manual';
   sourceName: string;
   date: string;
   lastChecked: number;
