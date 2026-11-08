@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Footer: React.FC = () => {
+const FooterComponent: React.FC = () => {
   return (
     <footer className="mt-auto py-5 px-4 text-center border-t border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
       <p className="text-sm font-semibold tracking-wide text-slate-300">
@@ -12,3 +12,5 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+
+export const Footer = React.memo(FooterComponent);

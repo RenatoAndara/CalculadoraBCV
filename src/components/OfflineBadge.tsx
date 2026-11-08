@@ -9,7 +9,7 @@ interface OfflineBadgeProps {
   lastSyncTime: number;
 }
 
-export const OfflineBadge: React.FC<OfflineBadgeProps> = ({ isOffline, rates, lastSyncTime }) => {
+const OfflineBadgeComponent: React.FC<OfflineBadgeProps> = ({ isOffline, rates, lastSyncTime }) => {
   return (
     <div className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium border transition-colors bg-slate-800/40 border-slate-700/60 text-slate-300">
       <div className="flex items-center gap-2">
@@ -36,3 +36,5 @@ export const OfflineBadge: React.FC<OfflineBadgeProps> = ({ isOffline, rates, la
     </div>
   );
 };
+
+export const OfflineBadge = React.memo(OfflineBadgeComponent);

@@ -9,7 +9,7 @@ interface TaxCalculatorProps {
   direction: 'TO_VES' | 'FROM_VES';
 }
 
-export const TaxCalculator: React.FC<TaxCalculatorProps> = ({
+const TaxCalculatorComponent: React.FC<TaxCalculatorProps> = ({
   includeIVA,
   onToggleIVA,
   includeIGTF,
@@ -75,3 +75,5 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({
     </div>
   );
 };
+
+export const TaxCalculator = React.memo(TaxCalculatorComponent);
