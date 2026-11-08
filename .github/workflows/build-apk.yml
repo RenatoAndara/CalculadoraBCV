@@ -35,6 +35,15 @@ jobs:
       - name: Ejecutar Pruebas Automatizadas
         run: npm test
 
+      - name: Generar Iconos Nativos de Android y Web
+        run: |
+          if [ -f scripts/generate_icons.py ]; then
+            pip install Pillow
+            python3 scripts/generate_icons.py
+          else
+            echo "Generador de iconos no presente, omitiendo paso."
+          fi
+
       - name: Compilar Frontend de Producción
         run: npm run build
 

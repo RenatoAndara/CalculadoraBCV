@@ -5,7 +5,39 @@
   "raw_eur": "1.001,18602288",
   "fecha_valor": "Lunes, 09 Noviembre 2026",
   "fecha_valor_iso": "2026-11-09T00:00:00-04:00",
-  "last_updated": "2026-11-08T10:37:31.623629",
+  "last_updated": "2026-11-08T11:45:00.000000",
   "source": "bcv-official",
-  "source_name": "BCV Oficial (Directo)"
+  "source_name": "BCV Oficial (Directo)",
+  "rates": {
+    "current": {
+      "label": "Tasa Vigente (Viernes 06 Nov)",
+      "short_label": "06 Nov (Vigente)",
+      "fecha_valor": "Viernes, 06 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-06T00:00:00-04:00",
+      "usd": 895.12,
+      "eur": 998.40
+    },
+    "next": {
+      "label": "Tasa Publicada (Lunes 09 Nov)",
+      "short_label": "09 Nov (Próx. Día)",
+      "fecha_valor": "Lunes, 09 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-09T00:00:00-04:00",
+      "usd": 897.5383,
+      "eur": 1001.18602288
+    }
+  },
+  "history": [
+    {
+      "fecha_valor": "Viernes, 06 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-06T00:00:00-04:00",
+      "usd": 895.12,
+      "eur": 998.40
+    },
+    {
+      "fecha_valor": "Lunes, 09 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-09T00:00:00-04:00",
+      "usd": 897.5383,
+      "eur": 1001.18602288
+    }
+  ]
 }

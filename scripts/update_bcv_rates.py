@@ -100,21 +100,74 @@ def main():
     print(f"EUR: {rates_data['raw_eur']} ({rates_data['eur']})")
     print(f"Fecha Valor: {rates_data['fecha_valor']}")
 
-    # Verificar si hubo cambios reales con respecto al archivo actual
+    # Verificar si hubo cambios reales con respecto al archivo actual y gestionar doble tasa
     has_changed = True
+    old_data: dict = {}
     if target_path.exists():
         try:
             with open(target_path, "r", encoding="utf-8") as f:
                 old_data = json.load(f)
-            if (
-                old_data.get("usd") == rates_data["usd"]
-                and old_data.get("eur") == rates_data["eur"]
-                and old_data.get("fecha_valor") == rates_data["fecha_valor"]
-            ):
-                has_changed = False
-                print("Las tasas y la fecha valor ya están al día. No hay cambios.")
         except Exception:
             pass
+
+    history = old_data.get("history", [])
+    old_rates_meta = old_data.get("rates", {})
+    current_snapshot = old_rates_meta.get("current")
+    next_snapshot = old_rates_meta.get("next")
+
+    new_snapshot = {
+        "label": f"Tasa Publicada ({rates_data['fecha_valor']})",
+        "short_label": "Próx. Día",
+        "fecha_valor": rates_data["fecha_valor"],
+        "fecha_valor_iso": rates_data["fecha_valor_iso"],
+        "usd": rates_data["usd"],
+        "eur": rates_data["eur"],
+    }
+
+    if old_data.get("fecha_valor") and old_data.get("fecha_valor") != rates_data["fecha_valor"]:
+        # Hubo cambio de Fecha Valor: la tasa previa pasa a ser la tasa vigente
+        if next_snapshot:
+            current_snapshot = {
+                **next_snapshot,
+                "label": f"Tasa Vigente ({next_snapshot.get('fecha_valor', '')})",
+                "short_label": "Vigente Hoy",
+            }
+        elif old_data.get("usd"):
+            current_snapshot = {
+                "label": f"Tasa Vigente ({old_data.get('fecha_valor')})",
+                "short_label": "Vigente Hoy",
+                "fecha_valor": old_data.get("fecha_valor"),
+                "fecha_valor_iso": old_data.get("fecha_valor_iso"),
+                "usd": old_data.get("usd"),
+                "eur": old_data.get("eur"),
+            }
+        next_snapshot = new_snapshot
+    else:
+        next_snapshot = new_snapshot
+        if (
+            old_data.get("usd") == rates_data["usd"]
+            and old_data.get("eur") == rates_data["eur"]
+            and old_data.get("fecha_valor") == rates_data["fecha_valor"]
+        ):
+            has_changed = False
+            print("Las tasas y la fecha valor ya están al día. No hay cambios.")
+
+    # Actualizar historial sin duplicados
+    if not any(h.get("fecha_valor") == new_snapshot["fecha_valor"] for h in history):
+        history.append({
+            "fecha_valor": new_snapshot["fecha_valor"],
+            "fecha_valor_iso": new_snapshot["fecha_valor_iso"],
+            "usd": new_snapshot["usd"],
+            "eur": new_snapshot["eur"],
+        })
+    history = history[-30:]
+
+    rates_data["rates"] = {}
+    if current_snapshot:
+        rates_data["rates"]["current"] = current_snapshot
+    if next_snapshot:
+        rates_data["rates"]["next"] = next_snapshot
+    rates_data["history"] = history
 
     # Guardar archivo actualizado
     target_path.parent.mkdir(parents=True, exist_ok=True)
