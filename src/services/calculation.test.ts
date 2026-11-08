@@ -49,4 +49,17 @@ describe('Calculator Conversion Logic', () => {
     const total = base + iva + igtf;
     expect(total).toBe(1190);
   });
+
+  it('correctly switches between current day rate and next business day rate', () => {
+    const currentRate = 895.12; // 06 Nov
+    const nextRate = 897.5383;  // 09 Nov
+    const input = 100;
+
+    const totalCurrent = input * currentRate;
+    const totalNext = input * nextRate;
+
+    expect(totalCurrent).toBe(89512);
+    expect(totalNext).toBeCloseTo(89753.83, 2);
+    expect(totalNext).toBeGreaterThan(totalCurrent);
+  });
 });

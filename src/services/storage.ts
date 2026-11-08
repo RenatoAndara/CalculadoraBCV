@@ -1,17 +1,35 @@
-import type { ExchangeRates } from '../types';
+import type { ExchangeRates, RateScheduleMode } from '../types';
 
 const RATES_STORAGE_KEY = 'bcv_cached_rates_v1';
 const PREFS_STORAGE_KEY = 'bcv_user_prefs_v1';
 
 // Tasas por defecto en caso de primer arranque absoluto sin internet
 const DEFAULT_FALLBACK_RATES: ExchangeRates = {
-  usd: 886.2271,
-  eur: 993.0883,
+  usd: 897.5383,
+  eur: 1001.18602288,
   usdParalelo: 995.46,
   source: 'cache',
   sourceName: 'Respaldo Inicial',
-  date: new Date().toISOString(),
+  date: 'Lunes, 09 Noviembre 2026',
   lastChecked: Date.now(),
+  rates: {
+    current: {
+      label: 'Tasa Vigente (Viernes 06 Nov)',
+      short_label: '06 Nov (Vigente)',
+      fecha_valor: 'Viernes, 06 Noviembre 2026',
+      fecha_valor_iso: '2026-11-06T00:00:00-04:00',
+      usd: 895.12,
+      eur: 998.40,
+    },
+    next: {
+      label: 'Tasa Publicada (Lunes 09 Nov)',
+      short_label: '09 Nov (Próx. Día)',
+      fecha_valor: 'Lunes, 09 Noviembre 2026',
+      fecha_valor_iso: '2026-11-09T00:00:00-04:00',
+      usd: 897.5383,
+      eur: 1001.18602288,
+    },
+  },
 };
 
 export function getStoredRates(): ExchangeRates {
@@ -46,6 +64,7 @@ export interface UserPrefs {
   direction: 'TO_VES' | 'FROM_VES';
   includeIVA: boolean;
   includeIGTF: boolean;
+  rateScheduleMode?: RateScheduleMode;
 }
 
 export function getStoredPrefs(): UserPrefs {
@@ -62,6 +81,7 @@ export function getStoredPrefs(): UserPrefs {
     direction: 'TO_VES',
     includeIVA: false,
     includeIGTF: false,
+    rateScheduleMode: 'next',
   };
 }
 
