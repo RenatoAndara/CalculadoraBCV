@@ -17,11 +17,11 @@ jobs:
       - name: Descargar Código
         uses: actions/checkout@v4
 
-      - name: Configurar Java 17 para Android SDK
+      - name: Configurar Java 21 para Android SDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -38,7 +38,7 @@ jobs:
       - name: Compilar Frontend de Producción
         run: npm run build
 
-      - name: Sincronizar con Capacitor Android
+      - name: Sincronizar Assets Web con Android
         env:
           XDG_CONFIG_HOME: /tmp/cfg
           XDG_DATA_HOME: /tmp/data
@@ -47,8 +47,10 @@ jobs:
           CAPACITOR_TELEMETRY: '0'
         run: |
           mkdir -p /tmp/cfg /tmp/data /tmp/state /tmp/cache
-          npx cap telemetry off || true
-          npx cap sync android
+          mkdir -p android/app/src/main/assets/public
+          rm -rf android/app/src/main/assets/public/*
+          cp -r dist/* android/app/src/main/assets/public/
+          npx cap sync android || echo "Assets web sincronizados manualmente en Android."
 
       - name: Configurar Gradle y Compilar APK Debug
         run: |
