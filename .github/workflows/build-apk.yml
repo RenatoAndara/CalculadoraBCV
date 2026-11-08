@@ -17,14 +17,20 @@ jobs:
       - name: Descargar Código
         uses: actions/checkout@v4
 
+      - name: Configurar Java 17 para Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Instalar Dependencias Web
-        run: npm ci
+      - name: Instalar Dependencias Web y Capacitor CLI
+        run: npm ci --include=dev
 
       - name: Ejecutar Pruebas Automatizadas
         run: npm test
@@ -35,15 +41,9 @@ jobs:
       - name: Sincronizar con Capacitor Android
         run: |
           mkdir -p ~/.config/capacitor
-          npx cap sync android
+          npx @capacitor/cli sync android
 
-      - name: Configurar Java 17 para Android SDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Configurar Gradle y Compilar APK
+      - name: Configurar Gradle y Compilar APK Debug
         run: |
           cd android
           chmod +x ./gradlew
