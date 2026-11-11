@@ -1,29 +1,29 @@
 {
-  "usd": 899.2705,
-  "eur": 1006.60742688,
-  "raw_usd": "899,27050000",
-  "raw_eur": "1.006,60742688",
-  "fecha_valor": "Martes, 10 Noviembre 2026",
-  "fecha_valor_iso": "2026-11-10T00:00:00-04:00",
-  "last_updated": "2026-11-10T20:05:51.540749",
+  "usd": 901.6175,
+  "eur": 1007.96328412,
+  "raw_usd": "901,61750000",
+  "raw_eur": "1.007,96328412",
+  "fecha_valor": "Miércoles, 11 Noviembre 2026",
+  "fecha_valor_iso": "2026-11-11T00:00:00-04:00",
+  "last_updated": "2026-11-11T00:57:03.223174",
   "source": "bcv-official",
   "source_name": "BCV Oficial (Directo)",
   "rates": {
     "current": {
-      "label": "Tasa Vigente (Lunes, 09 Noviembre 2026)",
+      "label": "Tasa Vigente (Martes, 10 Noviembre 2026)",
       "short_label": "Vigente Hoy",
-      "fecha_valor": "Lunes, 09 Noviembre 2026",
-      "fecha_valor_iso": "2026-11-09T00:00:00-04:00",
-      "usd": 897.5383,
-      "eur": 1001.18602288
-    },
-    "next": {
-      "label": "Tasa Publicada (Martes, 10 Noviembre 2026)",
-      "short_label": "Próx. Día",
       "fecha_valor": "Martes, 10 Noviembre 2026",
       "fecha_valor_iso": "2026-11-10T00:00:00-04:00",
       "usd": 899.2705,
       "eur": 1006.60742688
+    },
+    "next": {
+      "label": "Tasa Publicada (Miércoles, 11 Noviembre 2026)",
+      "short_label": "Próx. Día",
+      "fecha_valor": "Miércoles, 11 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-11T00:00:00-04:00",
+      "usd": 901.6175,
+      "eur": 1007.96328412
     }
   },
   "history": [
@@ -44,6 +44,12 @@
       "fecha_valor_iso": "2026-11-10T00:00:00-04:00",
       "usd": 899.2705,
       "eur": 1006.60742688
+    },
+    {
+      "fecha_valor": "Miércoles, 11 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-11T00:00:00-04:00",
+      "usd": 901.6175,
+      "eur": 1007.96328412
     }
   ]
 }
