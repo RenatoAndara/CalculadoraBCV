@@ -8,6 +8,7 @@ import { Calculator } from './components/Calculator';
 import { TaxCalculator } from './components/TaxCalculator';
 import { Footer } from './components/Footer';
 import { getLiveRates } from './services/rates';
+import { clasificarTasas, hoyCaracas } from './services/schedule';
 import { getStoredPrefs, getStoredRates, savePrefsToStorage } from './services/storage';
 import type { ConversionDirection, ExchangeRates, RateScheduleMode } from './types';
 
@@ -31,9 +32,24 @@ export const App: React.FC = () => {
   const [includeIGTF, setIncludeIGTF] = useState<boolean>(() => {
     return getStoredPrefs().includeIGTF || false;
   });
-  const [rateScheduleMode, setRateScheduleMode] = useState<RateScheduleMode>(() => {
-    return getStoredPrefs().rateScheduleMode || 'next';
-  });
+  // Siempre abre en "Vigente Hoy": es la tasa legal del día. "Próx. Día" solo
+  // aparece cuando el BCV ya publicó la tasa del siguiente día hábil.
+  // Se guarda la fecha valor elegida, no solo "next": si esa tasa pasa a ser la
+  // vigente (medianoche), la selección vuelve sola a "Vigente Hoy".
+  const [proximoElegido, setProximoElegido] = useState<string | null>(null);
+
+  // Fecha de hoy en Caracas: se revisa cada minuto y al volver a la app, para
+  // que a medianoche la tasa "Próx. Día" pase sola a "Vigente Hoy".
+  const [hoy, setHoy] = useState<string>(() => hoyCaracas());
+  useEffect(() => {
+    const revisar = () => setHoy(hoyCaracas());
+    const id = window.setInterval(revisar, 60_000);
+    document.addEventListener('visibilitychange', revisar);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', revisar);
+    };
+  }, []);
 
   // Estado de la calculadora
   const [inputAmount, setInputAmount] = useState<string>('1');
@@ -134,31 +150,32 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  const handleSelectScheduleMode = useCallback((mode: RateScheduleMode) => {
-    setRateScheduleMode(mode);
-    savePrefsToStorage({ rateScheduleMode: mode });
-  }, []);
+  // Clasificación por fecha valor vs. hoy en Caracas (ver services/schedule.ts)
+  const clasificadas = React.useMemo(
+    () => clasificarTasas(rates, new Date(`${hoy}T12:00:00-04:00`)),
+    [rates, hoy],
+  );
 
-  // Calcular las tasas efectivas según la selección: Vigente Hoy vs Próximo Día Hábil
+  const rateScheduleMode: RateScheduleMode =
+    clasificadas.next && proximoElegido === clasificadas.next.fecha_valor ? 'next' : 'current';
+
+  const handleSelectScheduleMode = useCallback((mode: RateScheduleMode) => {
+    setProximoElegido(mode === 'next' ? clasificadas.next?.fecha_valor ?? null : null);
+  }, [clasificadas]);
+
+  // Tasas efectivas según la selección: Vigente Hoy vs Próximo Día Hábil
   const effectiveRates = React.useMemo<ExchangeRates>(() => {
-    if (rateScheduleMode === 'current' && rates.rates?.current) {
-      return {
-        ...rates,
-        usd: rates.rates.current.usd,
-        eur: rates.rates.current.eur,
-        date: rates.rates.current.fecha_valor,
-      };
-    }
-    if (rates.rates?.next) {
-      return {
-        ...rates,
-        usd: rates.rates.next.usd,
-        eur: rates.rates.next.eur,
-        date: rates.rates.next.fecha_valor,
-      };
-    }
-    return rates;
-  }, [rates, rateScheduleMode]);
+    const { current, next } = clasificadas;
+    if (!current && !next) return rates;  // fuente sin fechas: se usa tal cual
+    const elegida = rateScheduleMode === 'next' && next ? next : current || next!;
+    return {
+      ...rates,
+      rates: { current, next },
+      usd: elegida.usd,
+      eur: elegida.eur,
+      date: elegida.fecha_valor,
+    };
+  }, [rates, clasificadas, rateScheduleMode]);
 
   // Botón de Reset para limpiar entradas de datos
   const handleReset = useCallback(() => {

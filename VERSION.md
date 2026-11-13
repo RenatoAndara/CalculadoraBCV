@@ -4,6 +4,21 @@ Todas las modificaciones notables de este proyecto están documentadas en este a
 
 ---
 
+## [1.3.1] - 2026-11-13
+
+### 🐛 Corrección: "Vigente Hoy" mostraba la tasa de ayer
+- **Causa:** la tasa "vigente" y la de "próximo día" se asignaban según el orden de publicación del BCV. En la mañana, la última tasa publicada (con fecha valor de hoy) aparecía como "Próx. Día" y la de ayer como "Vigente Hoy".
+- **Solución:** la clasificación ahora se hace por **fecha valor frente a la fecha de hoy en Caracas**:
+  - *Vigente Hoy* = la tasa más reciente con fecha valor igual o anterior a hoy.
+  - *Próx. Día* = la tasa con fecha valor posterior a hoy; solo aparece cuando el BCV ya la publicó (desde ~4 pm o fines de semana), con su día en la pestaña (ej. "Próx. Día · Lun 16/11").
+- Nuevo módulo [`src/services/schedule.ts`](src/services/schedule.ts): la app reclasifica en el dispositivo, sin conexión y al pasar la medianoche, aunque no descargue el JSON de nuevo.
+- [`scripts/update_bcv_rates.py`](scripts/update_bcv_rates.py) aplica la misma regla al generar `public/bcv_rates.json`.
+- La app abre siempre en *Vigente Hoy*; la selección de *Próx. Día* vuelve sola a *Vigente Hoy* cuando esa tasa entra en vigencia.
+- Workflow de tasas: nuevas ejecuciones a las 16:30 (lun–vie) y 00:05 (diaria), hora de Venezuela.
+- Pruebas: [`src/services/schedule.test.ts`](src/services/schedule.test.ts) con los casos de mañana, tarde, fin de semana y cambio de día.
+
+---
+
 ## [1.3.0] - 2026-11-08
 
 ### 🚀 Novedades: Motor Dual de Tasas BCV (Vigente vs Próximo Día Hábil)

@@ -2,6 +2,7 @@
 """
 Script para obtener las tasas oficiales del Banco Central de Venezuela (BCV)
 y actualizar el archivo public/bcv_rates.json.
+Autor: Renato Andara (RA 2026)
 Diseñado para ejecutarse sin dependencias externas en GitHub Actions.
 """
 
@@ -12,8 +13,9 @@ import os
 import re
 import ssl
 import sys
+import unicodedata
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -84,6 +86,58 @@ def extract_rates(html: str) -> dict:
     }
 
 
+MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+         "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+DIAS_CORTOS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+
+def hoy_caracas() -> str:
+    """Fecha de hoy en Venezuela (UTC-4, sin horario de verano) como AAAA-MM-DD."""
+    return (datetime.now(timezone.utc) - timedelta(hours=4)).strftime("%Y-%m-%d")
+
+
+def fecha_de(snapshot: dict) -> str | None:
+    """AAAA-MM-DD desde fecha_valor_iso o, si falta, desde el texto 'Viernes, 13 Noviembre 2026'."""
+    iso = snapshot.get("fecha_valor_iso") or ""
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", iso)
+    if m:
+        return m.group(1)
+    txt = unicodedata.normalize("NFD", (snapshot.get("fecha_valor") or "").lower())
+    txt = "".join(c for c in txt if unicodedata.category(c) != "Mn")
+    m = re.search(r"(\d{1,2})\s*(?:de\s+)?([a-z]+)\s*(?:de\s+)?(\d{4})", txt)
+    if not m:
+        return None
+    mes = next((i + 1 for i, x in enumerate(MESES) if m.group(2).startswith(x[:3])), 0)
+    return f"{m.group(3)}-{mes:02d}-{int(m.group(1)):02d}" if mes else None
+
+
+def clasificar_por_fecha(snapshots: list[dict], hoy: str) -> dict:
+    """Devuelve {'current': ..., 'next': ...} según la fecha valor frente a hoy."""
+    por_fecha: dict[str, dict] = {}
+    for snap in snapshots:
+        f = fecha_de(snap)
+        if f and snap.get("usd") and snap.get("eur"):
+            por_fecha[f] = snap  # los últimos de la lista tienen prioridad
+    fechas = sorted(por_fecha)
+    pasadas = [f for f in fechas if f <= hoy]
+    futuras = [f for f in fechas if f > hoy]
+
+    def limpio(snap: dict) -> dict:
+        return {k: snap.get(k) for k in ("fecha_valor", "fecha_valor_iso", "usd", "eur")}
+
+    resultado: dict = {}
+    if pasadas:
+        s = limpio(por_fecha[pasadas[-1]])
+        resultado["current"] = {"label": f"Tasa Vigente ({s['fecha_valor']})", "short_label": "Vigente Hoy", **s}
+    if futuras:
+        f = futuras[0]
+        s = limpio(por_fecha[f])
+        dia = DIAS_CORTOS[datetime.strptime(f, "%Y-%m-%d").weekday()]
+        corta = f"{dia} {f[8:10]}/{f[5:7]}"
+        resultado["next"] = {"label": f"Tasa Publicada ({s['fecha_valor']})", "short_label": f"Próx. Día · {corta}", **s}
+    return resultado
+
+
 def main():
     repo_root = Path(__file__).resolve().parent.parent
     target_path = repo_root / "public" / "bcv_rates.json"
@@ -100,8 +154,7 @@ def main():
     print(f"EUR: {rates_data['raw_eur']} ({rates_data['eur']})")
     print(f"Fecha Valor: {rates_data['fecha_valor']}")
 
-    # Verificar si hubo cambios reales con respecto al archivo actual y gestionar doble tasa
-    has_changed = True
+    # Leer el archivo actual para conservar el historial
     old_data: dict = {}
     if target_path.exists():
         try:
@@ -112,62 +165,39 @@ def main():
 
     history = old_data.get("history", [])
     old_rates_meta = old_data.get("rates", {})
-    current_snapshot = old_rates_meta.get("current")
-    next_snapshot = old_rates_meta.get("next")
 
     new_snapshot = {
-        "label": f"Tasa Publicada ({rates_data['fecha_valor']})",
-        "short_label": "Próx. Día",
         "fecha_valor": rates_data["fecha_valor"],
         "fecha_valor_iso": rates_data["fecha_valor_iso"],
         "usd": rates_data["usd"],
         "eur": rates_data["eur"],
     }
 
-    if old_data.get("fecha_valor") and old_data.get("fecha_valor") != rates_data["fecha_valor"]:
-        # Hubo cambio de Fecha Valor: la tasa previa pasa a ser la tasa vigente
-        if next_snapshot:
-            current_snapshot = {
-                **next_snapshot,
-                "label": f"Tasa Vigente ({next_snapshot.get('fecha_valor', '')})",
-                "short_label": "Vigente Hoy",
-            }
-        elif old_data.get("usd"):
-            current_snapshot = {
-                "label": f"Tasa Vigente ({old_data.get('fecha_valor')})",
-                "short_label": "Vigente Hoy",
-                "fecha_valor": old_data.get("fecha_valor"),
-                "fecha_valor_iso": old_data.get("fecha_valor_iso"),
-                "usd": old_data.get("usd"),
-                "eur": old_data.get("eur"),
-            }
-        next_snapshot = new_snapshot
-    else:
-        next_snapshot = new_snapshot
-        if (
-            old_data.get("usd") == rates_data["usd"]
-            and old_data.get("eur") == rates_data["eur"]
-            and old_data.get("fecha_valor") == rates_data["fecha_valor"]
-        ):
-            has_changed = False
-            print("Las tasas y la fecha valor ya están al día. No hay cambios.")
+    if (
+        old_data.get("usd") == rates_data["usd"]
+        and old_data.get("eur") == rates_data["eur"]
+        and old_data.get("fecha_valor") == rates_data["fecha_valor"]
+    ):
+        print("Las tasas y la fecha valor ya están al día.")
 
     # Actualizar historial sin duplicados
     if not any(h.get("fecha_valor") == new_snapshot["fecha_valor"] for h in history):
-        history.append({
-            "fecha_valor": new_snapshot["fecha_valor"],
-            "fecha_valor_iso": new_snapshot["fecha_valor_iso"],
-            "usd": new_snapshot["usd"],
-            "eur": new_snapshot["eur"],
-        })
+        history.append(dict(new_snapshot))
     history = history[-30:]
 
-    rates_data["rates"] = {}
-    if current_snapshot:
-        rates_data["rates"]["current"] = current_snapshot
-    if next_snapshot:
-        rates_data["rates"]["next"] = next_snapshot
+    # Clasificar por FECHA VALOR frente a la fecha de hoy en Caracas (no por orden de
+    # publicación): vigente = la más reciente con fecha <= hoy; próximo día = la más
+    # cercana con fecha > hoy. El BCV publica la del día siguiente desde ~4 pm.
+    pool = history + [s for s in (old_rates_meta.get("current"), old_rates_meta.get("next")) if s]
+    pool.append(new_snapshot)
+    rates_data["rates"] = clasificar_por_fecha(pool, hoy_caracas())
     rates_data["history"] = history
+
+    # Solo hay cambios si cambió el contenido (tasas, fecha o clasificación)
+    comparar = ("usd", "eur", "fecha_valor", "rates", "history")
+    has_changed = any(old_data.get(k) != rates_data.get(k) for k in comparar)
+    if not has_changed:
+        print("No hay cambios.")
 
     # Guardar archivo actualizado
     target_path.parent.mkdir(parents=True, exist_ok=True)
