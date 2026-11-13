@@ -4,6 +4,17 @@ Todas las modificaciones notables de este proyecto están documentadas en este a
 
 ---
 
+## [1.3.2] - 2026-11-13
+
+### 🔐 Firma permanente del APK (actualizaciones sin desinstalar)
+- **Problema:** el workflow compilaba `app-debug.apk`, que GitHub firma con una llave temporal distinta en cada ejecución. Android rechazaba instalar la versión nueva encima ("No se instaló la app").
+- **Solución:** [`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml) compila `assembleRelease` firmado con una llave fija tomada de los Secretos del repositorio (`FIRMA_BASE64`, `FIRMA_CLAVE`, `FIRMA_ALIAS`). La llave nunca se guarda en el repositorio (es público).
+- `versionCode` = número de compilación de GitHub (siempre creciente) y `versionName` = versión de `package.json`, en [`android/app/build.gradle`](android/app/build.gradle).
+- El APK se llama `CalculadoraBCV-v<versión>.apk` y el workflow verifica su firma con `apksigner`.
+- Si faltan los secretos, se compila la versión debug como antes, con un aviso.
+
+---
+
 ## [1.3.1] - 2026-11-13
 
 ### 🐛 Corrección: "Vigente Hoy" mostraba la tasa de ayer

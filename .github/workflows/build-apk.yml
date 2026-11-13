@@ -61,15 +61,51 @@ jobs:
           cp -r dist/* android/app/src/main/assets/public/
           npx cap sync android || echo "Assets web sincronizados manualmente en Android."
 
-      - name: Configurar Gradle y Compilar APK Debug
+      # Firma permanente: la llave viene de los Secretos del repositorio (nunca del código).
+      # Si faltan los secretos, compila una versión debug como antes (no actualizable encima).
+      - name: Restaurar Llave de Firma
+        env:
+          FIRMA_BASE64: ${{ secrets.FIRMA_BASE64 }}
         run: |
+          if [ -n "$FIRMA_BASE64" ]; then
+            echo "$FIRMA_BASE64" | base64 -d > "$RUNNER_TEMP/firma.jks"
+            echo "FIRMA_ARCHIVO=$RUNNER_TEMP/firma.jks" >> "$GITHUB_ENV"
+            echo "Llave de firma restaurada."
+          else
+            echo "::warning::Faltan los secretos FIRMA_BASE64/FIRMA_CLAVE/FIRMA_ALIAS. Se compilará un APK debug que NO se puede instalar encima de la versión anterior."
+          fi
+
+      - name: Compilar APK
+        env:
+          FIRMA_CLAVE: ${{ secrets.FIRMA_CLAVE }}
+          FIRMA_ALIAS: ${{ secrets.FIRMA_ALIAS }}
+        run: |
+          export VERSION_CODE="${{ github.run_number }}"
+          export VERSION_NAME="$(node -p "require('./package.json').version")"
+          echo "Versión ${VERSION_NAME} (código ${VERSION_CODE})"
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          mkdir -p ../salida
+          if [ -n "$FIRMA_ARCHIVO" ]; then
+            ./gradlew assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk "../salida/CalculadoraBCV-v${VERSION_NAME}.apk"
+          else
+            ./gradlew assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk "../salida/CalculadoraBCV-v${VERSION_NAME}-debug.apk"
+          fi
+
+      - name: Verificar Firma
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs salida/*.apk
+
+      - name: Borrar Llave Temporal
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firma.jks"
 
       - name: Subir APK como Artefacto Descargable
         uses: actions/upload-artifact@v4
         with:
           name: CalculadoraBCV-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: salida/*.apk
           retention-days: 30

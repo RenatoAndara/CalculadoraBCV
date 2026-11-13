@@ -7,8 +7,10 @@ android {
         applicationId "com.calculadora.bcv"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // En GitHub Actions: versionCode = número de compilación (siempre creciente)
+        // y versionName = versión de package.json. Así Android acepta cada APK como actualización.
+        versionCode((System.getenv("VERSION_CODE") ?: "1") as int)
+        versionName(System.getenv("VERSION_NAME") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +18,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Firma permanente (Autor: Renato Andara). La llave NO está en el repositorio:
+    // llega desde los Secretos de GitHub (FIRMA_BASE64, FIRMA_CLAVE, FIRMA_ALIAS).
+    // Con la misma firma en cada compilación, el APK nuevo se instala encima del anterior.
+    signingConfigs {
+        release {
+            if (System.getenv("FIRMA_ARCHIVO")) {
+                storeFile file(System.getenv("FIRMA_ARCHIVO"))
+                storePassword System.getenv("FIRMA_CLAVE")
+                keyAlias System.getenv("FIRMA_ALIAS") ?: "calculadora"
+                keyPassword System.getenv("FIRMA_CLAVE")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("FIRMA_ARCHIVO")) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
