@@ -4,6 +4,10 @@ on:
   schedule:
     # Lunes a Viernes a las 09:00, 13:00, 17:00 y 19:00 hora de Venezuela (UTC-4) -> 13, 17, 21, 23 UTC
     - cron: '0 13,17,21,23 * * 1-5'
+    # 16:30 hora de Venezuela (20:30 UTC): el BCV suele publicar la tasa del día siguiente desde las 4 pm
+    - cron: '30 20 * * 1-5'
+    # 00:05 hora de Venezuela (04:05 UTC) todos los días: reclasifica vigente/próximo al cambiar el día
+    - cron: '5 4 * * *'
   workflow_dispatch: # Permite ejecutar manualmente con un clic en GitHub Actions
 
 permissions:

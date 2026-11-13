@@ -10,16 +10,8 @@
   "source_name": "BCV Oficial (Directo)",
   "rates": {
     "current": {
-      "label": "Tasa Vigente (Jueves, 12 Noviembre 2026)",
+      "label": "Tasa Vigente (Viernes, 13 Noviembre 2026)",
       "short_label": "Vigente Hoy",
-      "fecha_valor": "Jueves, 12 Noviembre 2026",
-      "fecha_valor_iso": "2026-11-12T00:00:00-04:00",
-      "usd": 904.4485,
-      "eur": 1003.49465523
-    },
-    "next": {
-      "label": "Tasa Publicada (Viernes, 13 Noviembre 2026)",
-      "short_label": "Próx. Día",
       "fecha_valor": "Viernes, 13 Noviembre 2026",
       "fecha_valor_iso": "2026-11-13T00:00:00-04:00",
       "usd": 911.6243,
