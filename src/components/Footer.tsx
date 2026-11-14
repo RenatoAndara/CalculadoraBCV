@@ -1,16 +1,10 @@
+// Pie de página compacto — Autor: Renato Andara (RA 2026)
 import React from 'react';
 
-const FooterComponent: React.FC = () => {
-  return (
-    <footer className="mt-auto py-5 px-4 text-center border-t border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
-      <p className="text-sm font-semibold tracking-wide text-slate-300">
-        Desarrollado por <span className="text-emerald-400 font-bold">RA 2026</span>
-      </p>
-      <p className="text-xs text-slate-400 mt-1">
-        Tasas de cambio oficiales del Banco Central de Venezuela (BCV)
-      </p>
-    </footer>
-  );
-};
+const FooterComponent: React.FC = () => (
+  <footer className="mt-auto py-3 px-4 text-center text-[11px] text-slate-500 border-t border-slate-800/80">
+    Desarrollado por <span className="text-emerald-400 font-bold">RA 2026</span> · Tasas oficiales del BCV
+  </footer>
+);
 
 export const Footer = React.memo(FooterComponent);

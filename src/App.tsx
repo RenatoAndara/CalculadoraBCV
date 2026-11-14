@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Download, AlertCircle } from 'lucide-react';
 import { Header } from './components/Header';
-import { OfflineBadge } from './components/OfflineBadge';
-import { CurrencySelector } from './components/CurrencySelector';
 import { QuickAmounts } from './components/QuickAmounts';
 import { Calculator } from './components/Calculator';
 import { TaxCalculator } from './components/TaxCalculator';
+import { UsdtSwitch } from './components/UsdtSwitch';
 import { Footer } from './components/Footer';
 import { getLiveRates } from './services/rates';
 import { clasificarTasas, hoyCaracas } from './services/schedule';
 import { getStoredPrefs, getStoredRates, savePrefsToStorage } from './services/storage';
-import type { ConversionDirection, ExchangeRates, RateScheduleMode } from './types';
+import { leerUsdtGuardado, obtenerUsdtP2P, usdtVencido } from './services/usdt';
+import type { ConversionDirection, Divisa, ExchangeRates, RateScheduleMode, UsdtRates, UsdtRefresh } from './types';
 
 export const App: React.FC = () => {
   // Estado de tasas con carga inmediata de caché para arranque a velocidad instantánea (0ms)
@@ -20,8 +20,17 @@ export const App: React.FC = () => {
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
   // Preferencias de usuario
-  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'EUR'>(() => {
-    return getStoredPrefs().lastCurrency || 'USD';
+  // USDT Binance P2P (opcional, apagado por defecto)
+  const [usdtEnabled, setUsdtEnabled] = useState<boolean>(() => Boolean(getStoredPrefs().usdtEnabled));
+  const [usdtRefresh, setUsdtRefresh] = useState<UsdtRefresh>(() => getStoredPrefs().usdtRefresh || 'open');
+  const [usdt, setUsdt] = useState<UsdtRates | null>(() => leerUsdtGuardado());
+  const [usdtLoading, setUsdtLoading] = useState(false);
+  const [usdtError, setUsdtError] = useState<string | null>(null);
+
+  const [selectedCurrency, setSelectedCurrency] = useState<Divisa>(() => {
+    const p = getStoredPrefs();
+    const c = p.lastCurrency || 'USD';
+    return c === 'USDT' && !p.usdtEnabled ? 'USD' : c;
   });
   const [direction, setDirection] = useState<ConversionDirection>(() => {
     return getStoredPrefs().direction || 'TO_VES';
@@ -78,6 +87,60 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Consulta de USDT a Binance P2P (solo si el usuario lo activó)
+  const usdtRef = React.useRef(usdt);
+  useEffect(() => {
+    usdtRef.current = usdt;
+  }, [usdt]);
+  const handleFetchUsdt = useCallback(async () => {
+    if (!navigator.onLine) {
+      setUsdtError('Sin conexión.');
+      return;
+    }
+    setUsdtLoading(true);
+    try {
+      setUsdt(await obtenerUsdtP2P());
+      setUsdtError(null);
+    } catch {
+      setUsdtError('No se pudo consultar Binance.');
+    } finally {
+      setUsdtLoading(false);
+    }
+  }, []);
+
+  // Frecuencia elegida: al abrir (y al volver a la app), o cada 30/45 minutos
+  useEffect(() => {
+    if (!usdtEnabled) return;
+    const revisar = () => {
+      if (document.visibilityState === 'visible' && usdtVencido(usdtRef.current, usdtRefresh)) {
+        handleFetchUsdt();
+      }
+    };
+    revisar();
+    document.addEventListener('visibilitychange', revisar);
+    const id = usdtRefresh === 'open' ? undefined : window.setInterval(revisar, 60_000);
+    return () => {
+      document.removeEventListener('visibilitychange', revisar);
+      if (id) window.clearInterval(id);
+    };
+  }, [usdtEnabled, usdtRefresh, handleFetchUsdt]);
+
+  const handleUsdtChange = useCallback((enabled: boolean, refresh: UsdtRefresh) => {
+    setUsdtEnabled(enabled);
+    setUsdtRefresh(refresh);
+    savePrefsToStorage({ usdtEnabled: enabled, usdtRefresh: refresh });
+    if (!enabled) {
+      setSelectedCurrency((c) => (c === 'USDT' ? 'USD' : c));
+      setUsdtError(null);
+    }
+  }, []);
+
+  // El botón ⟳ actualiza BCV y, si está activo, USDT
+  const handleRefreshAll = useCallback(() => {
+    handleFetchRates();
+    if (usdtEnabled) handleFetchUsdt();
+  }, [handleFetchRates, handleFetchUsdt, usdtEnabled]);
+
   // Carga inicial y eventos de conectividad del sistema
   useEffect(() => {
     handleFetchRates();
@@ -121,7 +184,7 @@ export const App: React.FC = () => {
   };
 
   // Guardar preferencias cuando cambian (memorizados para evitar re-renderizados en cascada)
-  const handleSelectCurrency = useCallback((curr: 'USD' | 'EUR') => {
+  const handleSelectCurrency = useCallback((curr: Divisa) => {
     setSelectedCurrency(curr);
     savePrefsToStorage({ lastCurrency: curr });
   }, []);
@@ -177,6 +240,12 @@ export const App: React.FC = () => {
     };
   }, [rates, clasificadas, rateScheduleMode]);
 
+  // Tasa con la que se convierte según la divisa elegida
+  const activeRate =
+    selectedCurrency === 'USDT' ? usdt?.promedio || 0 : selectedCurrency === 'EUR' ? effectiveRates.eur : effectiveRates.usd;
+  const rateLabel =
+    selectedCurrency === 'USDT' ? 'Binance P2P' : rateScheduleMode === 'next' ? 'BCV próx. día' : 'BCV';
+
   // Botón de Reset para limpiar entradas de datos
   const handleReset = useCallback(() => {
     setInputAmount('');
@@ -185,7 +254,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-between selection:bg-emerald-500 selection:text-slate-950">
       {/* Contenedor centralizado para celulares Android y responsive */}
-      <main className="w-full max-w-md mx-auto px-4 py-5 flex-1 flex flex-col gap-4">
+      <main className="w-full max-w-md mx-auto px-4 py-3 flex-1 flex flex-col gap-2.5">
         {/* Banner de instalación Standalone en Android si el navegador lo ofrece */}
         {canInstall && (
           <div className="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/30 animate-in fade-in">
@@ -210,44 +279,27 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Encabezado con tasas oficiales, selector dual vigente/próx día y botón de refrescar */}
+        {/* Encabezado: tasas, pestañas Vigente/Próx. Día, USDT opcional y estado */}
         <Header
           rates={effectiveRates}
           isLoading={isLoading}
-          onRefresh={handleFetchRates}
+          isOffline={isOffline}
+          onRefresh={handleRefreshAll}
           selectedCurrency={selectedCurrency}
           onSelectCurrency={handleSelectCurrency}
           rateScheduleMode={rateScheduleMode}
           onSelectScheduleMode={handleSelectScheduleMode}
+          usdt={usdtEnabled ? usdt : undefined}
+          usdtLoading={usdtLoading}
+          usdtError={usdtEnabled ? usdtError : null}
         />
 
-        {/* Indicador de conexión / offline */}
-        <OfflineBadge
-          isOffline={isOffline}
-          rates={effectiveRates}
-          lastSyncTime={rates.lastChecked}
-        />
-
-        {/* Selector de divisa y dirección con botón Swap */}
-        <CurrencySelector
-          selectedCurrency={selectedCurrency}
-          direction={direction}
-          onSelectCurrency={handleSelectCurrency}
-          onToggleDirection={handleToggleDirection}
-        />
-
-        {/* Montos rápidos para agilizar el tecleo en móvil */}
-        <QuickAmounts
-          direction={direction}
-          selectedCurrency={selectedCurrency}
-          onSelectAmount={(val) => setInputAmount(val)}
-        />
-
-        {/* Calculadora principal con botón de Reset y copiado */}
         <Calculator
-          rates={effectiveRates}
+          activeRate={activeRate}
+          rateLabel={rateLabel}
           selectedCurrency={selectedCurrency}
           direction={direction}
+          onToggleDirection={handleToggleDirection}
           inputAmount={inputAmount}
           onInputChange={setInputAmount}
           onReset={handleReset}
@@ -255,14 +307,20 @@ export const App: React.FC = () => {
           includeIGTF={includeIGTF}
         />
 
-        {/* Cálculo de impuestos opcionales */}
+        <QuickAmounts
+          direction={direction}
+          selectedCurrency={selectedCurrency}
+          onSelectAmount={(val) => setInputAmount(val)}
+        />
+
         <TaxCalculator
           includeIVA={includeIVA}
           onToggleIVA={handleToggleIVA}
           includeIGTF={includeIGTF}
           onToggleIGTF={handleToggleIGTF}
-          direction={direction}
         />
+
+        <UsdtSwitch enabled={usdtEnabled} refresh={usdtRefresh} onChange={handleUsdtChange} />
       </main>
 
       {/* Pie de página con créditos requeridos: Desarrollado por RA 2026 */}

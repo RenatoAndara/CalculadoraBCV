@@ -4,6 +4,26 @@ Todas las modificaciones notables de este proyecto están documentadas en este a
 
 ---
 
+## [1.4.0] - 2026-11-14
+
+### ✨ Tasas USDT de Binance P2P (opcional)
+- Nuevo interruptor **"Ver USDT (Binance P2P)"**, apagado por defecto para no aumentar las conexiones.
+- Al activarlo, una ventana advierte que usará más datos y que es un precio referencial, y pide elegir cuándo actualizar: **al abrir la app** (máx. una vez cada 5 min), **cada 30 min** o **cada 45 min**. El botón ⟳ actualiza BCV y USDT en cualquier momento.
+- Tarjeta USDT con **promedio**, **compra** y **venta** (promedio de los 10 mejores anuncios de cada lado) y brecha frente al BCV. Al tocarla se convierte Bs. ↔ USDT con el promedio.
+- Nuevo servicio [`src/services/usdt.ts`](src/services/usdt.ts): en Android consulta con la conexión nativa (`CapacitorHttp`) para evitar bloqueos CORS; guarda la última tasa para uso sin conexión.
+
+### 🧹 Pantalla más compacta (sin redundancias)
+- Eliminado el selector Dólar/Euro duplicado: se elige tocando las tarjetas de tasas.
+- La dirección (⇄ Invertir) pasa dentro de la tarjeta del monto; se eliminó el bloque Origen/Destino.
+- La barra "Conectado al BCV" se reemplaza por una línea de estado (fecha valor y última actualización).
+- Pestañas con fecha: "Vigente Hoy · Vie 13/11" / "Próx. Día · Lun 16/11".
+- Sin botón Reset duplicado (queda la ✕ del campo), montos rápidos e impuestos en una sola fila, encabezado y pie más pequeños.
+
+### 📋 Copiar monto
+- Se copia solo el número, **sin separador de miles y con coma decimal** (ej. `45581,22`), listo para pegar en Pago Móvil o apps bancarias.
+
+---
+
 ## [1.3.2] - 2026-11-13
 
 ### 🔐 Firma permanente del APK (actualizaciones sin desinstalar)
