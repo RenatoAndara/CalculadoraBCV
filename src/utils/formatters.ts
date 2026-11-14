@@ -3,7 +3,7 @@
  */
 
 // Formatear montos en moneda según el estándar venezolano o internacional
-export function formatCurrency(amount: number, currency: 'USD' | 'EUR' | 'VES', decimals?: number): string {
+export function formatCurrency(amount: number, currency: 'USD' | 'EUR' | 'USDT' | 'VES', decimals?: number): string {
   if (isNaN(amount) || amount === null || amount === undefined) {
     return '0,00';
   }
@@ -71,4 +71,16 @@ export function parseCleanNumber(input: string): number {
   const cleaned = input.trim().replace(/\s/g, '').replace(',', '.');
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
+}
+
+// Monto para copiar al portapapeles: sin separador de miles y con coma decimal
+// (ej. 45581,22), listo para pegar en apps bancarias o Pago Móvil.
+// Usa el mismo redondeo que el monto mostrado en pantalla (Intl), así nunca difieren.
+export function formatForCopy(amount: number, decimals = 2): string {
+  if (!isFinite(amount)) return '0,00';
+  return new Intl.NumberFormat('es-VE', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+  }).format(amount);
 }

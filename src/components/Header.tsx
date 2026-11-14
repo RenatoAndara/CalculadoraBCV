@@ -1,173 +1,176 @@
+/**
+ * Encabezado compacto: título, actualizar, pestañas Vigente/Próx. Día,
+ * tarjetas de tasas (USD, EUR y, si está activo, USDT P2P) y una sola línea de estado.
+ * Autor: Renato Andara (RA 2026)
+ */
 import React from 'react';
-import { RefreshCw, TrendingUp, Calendar, Clock } from 'lucide-react';
-import type { ExchangeRates, RateScheduleMode } from '../types';
-import { formatRate } from '../utils/formatters';
+import { RefreshCw, WifiOff } from 'lucide-react';
+import type { Divisa, ExchangeRates, RateScheduleMode, UsdtRates } from '../types';
+import { formatRate, formatTimeAgo } from '../utils/formatters';
+import { fechaDeSnapshot } from '../services/schedule';
 
 interface HeaderProps {
   rates: ExchangeRates;
   isLoading: boolean;
+  isOffline: boolean;
   onRefresh: () => void;
-  selectedCurrency: 'USD' | 'EUR';
-  onSelectCurrency: (curr: 'USD' | 'EUR') => void;
+  selectedCurrency: Divisa;
+  onSelectCurrency: (curr: Divisa) => void;
   rateScheduleMode?: RateScheduleMode;
   onSelectScheduleMode?: (mode: RateScheduleMode) => void;
+  usdt?: UsdtRates | null;
+  usdtLoading?: boolean;
+  usdtError?: string | null;
 }
+
+const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+/** 'Viernes, 13 Noviembre 2026' -> 'Vie 13/11' */
+function fechaCorta(texto: string): string {
+  const f = fechaDeSnapshot({ fecha_valor: texto, fecha_valor_iso: null });
+  if (!f) return texto;
+  const [a, m, d] = f.split('-').map(Number);
+  return `${DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
+const estiloTarjeta = (activa: boolean, color: string) =>
+  `p-2.5 rounded-2xl border transition-all text-left ${
+    activa
+      ? `bg-slate-800 ${color} ring-1 shadow-lg`
+      : 'bg-slate-800/40 border-slate-700/60'
+  }`;
 
 const HeaderComponent: React.FC<HeaderProps> = ({
   rates,
   isLoading,
+  isOffline,
   onRefresh,
   selectedCurrency,
   onSelectCurrency,
-  rateScheduleMode = 'next',
+  rateScheduleMode = 'current',
   onSelectScheduleMode,
+  usdt,
+  usdtLoading,
+  usdtError,
 }) => {
+  const vigente = rates.rates?.current;
+  const proximo = rates.rates?.next;
+  const brecha = usdt && rates.usd > 0 ? (usdt.promedio / rates.usd - 1) * 100 : null;
+
   return (
-    <header className="w-full space-y-3">
-      {/* Barra superior de título y botón de refresco */}
+    <header className="w-full space-y-2.5">
+      {/* Título + actualizar (solo ícono para ahorrar espacio) */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
-            <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-emerald-400 font-black text-lg">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 p-0.5 flex items-center justify-center">
+            <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-emerald-400 font-black text-sm">
               Bs
             </div>
           </div>
-          <div>
-            <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-              Calculadora BCV
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Oficial
-              </span>
-            </h1>
-            <p className="text-xs text-slate-400">Banco Central de Venezuela</p>
-          </div>
+          <h1 className="text-base font-black tracking-tight text-white">Calculadora BCV</h1>
         </div>
-
-        {/* Botón de Refrescar / Actualizar la tasa */}
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          aria-label="Actualizar tasas del BCV"
-          title="Actualizar tasas en vivo"
-          className="group relative flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-750 active:scale-95 border border-slate-700 hover:border-emerald-500/50 text-slate-200 text-xs font-semibold shadow-md transition-all disabled:opacity-60 disabled:pointer-events-none"
+          aria-label="Actualizar tasas"
+          title="Actualizar tasas"
+          className="p-2 rounded-xl bg-slate-800/90 active:scale-95 border border-slate-700 text-emerald-400 transition-all disabled:opacity-60"
         >
-          <RefreshCw
-            className={`w-4 h-4 text-emerald-400 transition-transform ${
-              isLoading ? 'animate-spin' : 'group-hover:rotate-180 duration-500'
-            }`}
-          />
-          <span className="hidden sm:inline">Actualizar</span>
-          <span className="sm:hidden">Refrescar</span>
+          <RefreshCw className={`w-4 h-4 ${isLoading || usdtLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      {/* Selector de Tasa Vigente vs Tasa Próximo Día Hábil (BCV Dual Engine) */}
-      {rates.rates?.current && rates.rates?.next && (
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-inner">
-          <button
-            type="button"
-            onClick={() => onSelectScheduleMode?.('current')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
-              rateScheduleMode === 'current'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{rates.rates.current.short_label || 'Tasa Vigente'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectScheduleMode?.('next')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
-              rateScheduleMode === 'next'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-950/40'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{rates.rates.next.short_label || 'Próx. Día'}</span>
-          </button>
+      {/* Vigente Hoy / Próx. Día: solo cuando el BCV ya publicó la del siguiente día */}
+      {vigente && proximo && (
+        <div className="flex gap-1 p-1 rounded-xl bg-slate-900/80 border border-slate-800">
+          {(['current', 'next'] as const).map((modo) => {
+            const snap = modo === 'current' ? vigente : proximo;
+            const activa = rateScheduleMode === modo;
+            return (
+              <button
+                key={modo}
+                type="button"
+                onClick={() => onSelectScheduleMode?.(modo)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all truncate ${
+                  activa ? 'bg-emerald-600 text-white' : 'text-slate-400'
+                }`}
+              >
+                {modo === 'current' ? 'Vigente Hoy' : 'Próx. Día'} · {fechaCorta(snap.fecha_valor)}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Tarjetas de tasas USD y EUR */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Tarjeta USD */}
-        <button
-          type="button"
-          onClick={() => onSelectCurrency('USD')}
-          className={`p-3 rounded-2xl border transition-all text-left ${
-            selectedCurrency === 'USD'
-              ? 'bg-gradient-to-b from-slate-800 to-slate-850 border-emerald-500/60 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/30'
-              : 'bg-slate-800/40 border-slate-700/60 hover:border-slate-600'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-              <span className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center font-black">
-                $
-              </span>
-              USD Oficial
-            </span>
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500/70" />
-          </div>
-          <div className="text-lg font-black text-white tracking-tight flex items-baseline">
-            {isLoading && (!rates.usd || rates.usd <= 0) ? (
-              <span className="inline-block h-6 w-24 bg-slate-700/60 rounded animate-pulse my-0.5" />
-            ) : (
-              <>
-                {formatRate(rates.usd)}{' '}
-                <span className="text-xs font-semibold text-slate-400 ml-1">Bs.</span>
-              </>
-            )}
-          </div>
-        </button>
-
-        {/* Tarjeta EUR */}
-        <button
-          type="button"
-          onClick={() => onSelectCurrency('EUR')}
-          className={`p-3 rounded-2xl border transition-all text-left ${
-            selectedCurrency === 'EUR'
-              ? 'bg-gradient-to-b from-slate-800 to-slate-850 border-cyan-500/60 shadow-lg shadow-cyan-950/30 ring-1 ring-cyan-500/30'
-              : 'bg-slate-800/40 border-slate-700/60 hover:border-slate-600'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-cyan-400 flex items-center gap-1">
-              <span className="w-5 h-5 rounded-md bg-cyan-500/10 flex items-center justify-center font-black">
-                €
-              </span>
-              EUR Oficial
-            </span>
-            <TrendingUp className="w-3.5 h-3.5 text-cyan-500/70" />
-          </div>
-          <div className="text-lg font-black text-white tracking-tight flex items-baseline">
-            {isLoading && (!rates.eur || rates.eur <= 0) ? (
-              <span className="inline-block h-6 w-24 bg-slate-700/60 rounded animate-pulse my-0.5" />
-            ) : (
-              <>
-                {formatRate(rates.eur)}{' '}
-                <span className="text-xs font-semibold text-slate-400 ml-1">Bs.</span>
-              </>
-            )}
-          </div>
-        </button>
+      {/* Tarjetas: tocar una la elige para convertir (sustituye al selector de divisa) */}
+      <div className="grid grid-cols-2 gap-2">
+        {(['USD', 'EUR'] as const).map((div) => {
+          const valor = div === 'USD' ? rates.usd : rates.eur;
+          const activa = selectedCurrency === div;
+          const color = div === 'USD' ? 'border-emerald-500/60 ring-emerald-500/30' : 'border-cyan-500/60 ring-cyan-500/30';
+          return (
+            <button key={div} type="button" onClick={() => onSelectCurrency(div)} className={estiloTarjeta(activa, color)}>
+              <div className={`text-[11px] font-bold ${div === 'USD' ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                {div === 'USD' ? '$ Dólar BCV' : '€ Euro BCV'}
+              </div>
+              <div className="text-lg font-black text-white tracking-tight leading-tight">
+                {formatRate(valor)} <span className="text-[11px] font-semibold text-slate-400">Bs.</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tasa Paralelo referencial si está disponible */}
-      {rates.usdParalelo && (
-        <div className="px-3 py-1.5 rounded-xl bg-slate-800/30 border border-slate-700/40 flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-            Ref. Paralelo:
-          </span>
-          <span className="font-semibold text-slate-300">
-            {formatRate(rates.usdParalelo)} Bs.
-          </span>
-        </div>
+      {/* USDT Binance P2P (opcional) */}
+      {usdt !== undefined && (
+        <button
+          type="button"
+          onClick={() => usdt && onSelectCurrency('USDT')}
+          disabled={!usdt}
+          className={`w-full ${estiloTarjeta(selectedCurrency === 'USDT', 'border-amber-500/60 ring-amber-500/30')}`}
+        >
+          <div className="flex items-center justify-between text-[11px] font-bold">
+            <span className="text-amber-400">
+              ₮ USDT Binance P2P{usdt && <span className="font-normal text-slate-400"> · {formatTimeAgo(usdt.lastChecked).toLowerCase()}</span>}
+            </span>
+            {brecha !== null && (
+              <span className="text-slate-400">
+                {brecha >= 0 ? '+' : ''}{brecha.toLocaleString('es-VE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% vs BCV
+              </span>
+            )}
+          </div>
+          {usdt ? (
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-lg font-black text-white tracking-tight leading-tight">
+                {formatRate(usdt.promedio)} <span className="text-[11px] font-semibold text-slate-400">Bs. prom.</span>
+              </span>
+              <span className="text-[11px] text-slate-400 text-right leading-tight">
+                Compra {formatRate(usdt.compra)}<br />Venta {formatRate(usdt.venta)}
+              </span>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 py-1">
+              {usdtLoading ? 'Consultando Binance…' : usdtError || 'Sin datos todavía'}
+            </div>
+          )}
+        </button>
+      )}
+
+      {/* Una sola línea de estado (reemplaza la barra "Conectado al BCV") */}
+      <div className="flex items-center justify-between px-1 text-[11px] text-slate-400">
+        <span className="flex items-center gap-1.5">
+          {isOffline ? (
+            <><WifiOff className="w-3 h-3 text-amber-400" /><span className="text-amber-300">Sin conexión</span></>
+          ) : (
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          )}
+          <span className="whitespace-nowrap">Fecha valor: <b className="text-slate-300">{fechaCorta(rates.date)}</b></span>
+        </span>
+        <span className="whitespace-nowrap">BCV {formatTimeAgo(rates.lastChecked).toLowerCase()}</span>
+      </div>
+
+      {usdt && usdtError && (
+        <div className="px-1 text-[11px] text-amber-300">⚠ {usdtError} Se muestra la última tasa USDT guardada.</div>
       )}
     </header>
   );

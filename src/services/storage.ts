@@ -1,4 +1,4 @@
-import type { ExchangeRates, RateScheduleMode } from '../types';
+import type { Divisa, ExchangeRates, RateScheduleMode, UsdtRefresh } from '../types';
 
 const RATES_STORAGE_KEY = 'bcv_cached_rates_v1';
 const PREFS_STORAGE_KEY = 'bcv_user_prefs_v1';
@@ -60,11 +60,14 @@ export function saveRatesToStorage(rates: ExchangeRates): void {
 }
 
 export interface UserPrefs {
-  lastCurrency: 'USD' | 'EUR';
+  lastCurrency: Divisa;
   direction: 'TO_VES' | 'FROM_VES';
   includeIVA: boolean;
   includeIGTF: boolean;
   rateScheduleMode?: RateScheduleMode;
+  /** Mostrar tasas USDT de Binance P2P (apagado por defecto: menos conexiones) */
+  usdtEnabled?: boolean;
+  usdtRefresh?: UsdtRefresh;
 }
 
 export function getStoredPrefs(): UserPrefs {
