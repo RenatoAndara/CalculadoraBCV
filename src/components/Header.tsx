@@ -4,7 +4,7 @@
  * Autor: Renato Andara (RA 2026)
  */
 import React from 'react';
-import { RefreshCw, WifiOff } from 'lucide-react';
+import { CalendarDays, RefreshCw, WifiOff } from 'lucide-react';
 import type { Divisa, ExchangeRates, RateScheduleMode, UsdtRates } from '../types';
 import { formatRate, formatTimeAgo } from '../utils/formatters';
 import { fechaDeSnapshot } from '../services/schedule';
@@ -21,6 +21,7 @@ interface HeaderProps {
   usdt?: UsdtRates | null;
   usdtLoading?: boolean;
   usdtError?: string | null;
+  onOpenHistory?: () => void;
 }
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -52,6 +53,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   usdt,
   usdtLoading,
   usdtError,
+  onOpenHistory,
 }) => {
   const vigente = rates.rates?.current;
   const proximo = rates.rates?.next;
@@ -67,17 +69,30 @@ const HeaderComponent: React.FC<HeaderProps> = ({
               Bs
             </div>
           </div>
-          <h1 className="text-base font-black tracking-tight text-white">Calculadora BCV</h1>
+          <h1 className="text-base font-black tracking-tight text-white leading-tight">Calculadora<br />BCV</h1>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          aria-label="Actualizar tasas"
-          title="Actualizar tasas"
-          className="p-2 rounded-xl bg-slate-800/90 active:scale-95 border border-slate-700 text-emerald-400 transition-all disabled:opacity-60"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading || usdtLoading ? 'animate-spin' : ''}`} />
-        </button>
+        {/* Botones grandes (mín. 44 px de alto) para tocarlos con facilidad */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            aria-label="Historial de tasas (30 días)"
+            title="Historial de tasas"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-800/90 active:scale-95 border border-slate-700 text-cyan-300 transition-all"
+          >
+            <CalendarDays className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoading}
+            aria-label="Actualizar tasas"
+            className="h-11 px-3.5 flex items-center gap-2 rounded-xl bg-emerald-600 active:scale-95 text-white text-sm font-bold shadow-lg shadow-emerald-900/40 transition-all disabled:opacity-70"
+          >
+            <RefreshCw className={`w-5 h-5 ${isLoading || usdtLoading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Vigente Hoy / Próx. Día: solo cuando el BCV ya publicó la del siguiente día */}

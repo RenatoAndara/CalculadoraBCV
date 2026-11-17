@@ -1,5 +1,6 @@
 import type { ExchangeRates } from '../types';
 import { getStoredRates, saveRatesToStorage } from './storage';
+import { fechaMasReciente } from './history';
 
 // Utilidad para fetch con timeout estricto para evitar bloqueos en conexiones lentas
 async function fetchWithTimeout(url: string, timeoutMs = 6000): Promise<Response> {
@@ -26,10 +27,18 @@ async function fetchWithTimeout(url: string, timeoutMs = 6000): Promise<Response
  * Extraído directamente del portal oficial bcv.org.ve mediante Python en GitHub Actions.
  */
 async function fetchFromBcvDirect(): Promise<ExchangeRates> {
+  // Orden importante (v1.5.0): raw.githubusercontent renueva su copia cada 5 min.
+  // jsDelivr guarda copias de ramas hasta ~12 h y entregaba la tasa de ayer aunque
+  // el BCV ya hubiera publicado la del día siguiente; queda solo como respaldo.
+  // El parámetro ?t= evita que el WebView reutilice una respuesta vieja.
+  const t = Date.now();
   const endpoints = [
+    `https://raw.githubusercontent.com/RenatoAndara/CalculadoraBCV/main/public/bcv_rates.json?t=${t}`,
     'https://cdn.jsdelivr.net/gh/RenatoAndara/CalculadoraBCV@main/public/bcv_rates.json',
-    'https://raw.githubusercontent.com/RenatoAndara/CalculadoraBCV/main/public/bcv_rates.json',
   ];
+  // Nunca retroceder: si una fuente trae datos más viejos que los guardados, se ignora
+  const guardadas = getStoredRates();
+  const fechaGuardada = fechaMasReciente(guardadas);
 
   let lastError: unknown;
   for (const url of endpoints) {
@@ -45,7 +54,7 @@ async function fetchFromBcvDirect(): Promise<ExchangeRates> {
         continue;
       }
 
-      return {
+      const resultado: ExchangeRates = {
         usd,
         eur,
         source: 'bcv-direct',
@@ -55,6 +64,12 @@ async function fetchFromBcvDirect(): Promise<ExchangeRates> {
         rates: data.rates || undefined,
         history: data.history || undefined,
       };
+      const fechaNueva = fechaMasReciente(resultado);
+      if (fechaGuardada && fechaNueva && fechaNueva < fechaGuardada) {
+        lastError = new Error(`${url} trae datos viejos (${fechaNueva})`);
+        continue;
+      }
+      return resultado;
     } catch (e) {
       lastError = e;
     }
