@@ -4,6 +4,24 @@ Todas las modificaciones notables de este proyecto están documentadas en este a
 
 ---
 
+## [1.5.0] - 2026-11-16
+
+### 🐛 La app no mostraba la tasa del día siguiente ya publicada por el BCV
+- **Causa:** la app descargaba primero `bcv_rates.json` desde jsDelivr, que guarda copias de los archivos de una rama hasta ~12 horas. Aunque el actualizador ya había guardado la tasa del martes 17, la app recibía la versión anterior.
+- **Solución:** [`src/services/rates.ts`](src/services/rates.ts) consulta primero `raw.githubusercontent.com` (copia renovada cada 5 min) con un parámetro anti-caché; jsDelivr queda de respaldo. Además, si una fuente trae datos más viejos que los guardados en el teléfono, se descarta.
+- [`update-bcv-rates.yml`](.github/workflows/update-bcv-rates.yml): GitHub omitía varias ejecuciones programadas. Ahora el actualizador corre cada 30 min de 4:00 pm a 9:30 pm (hora de Venezuela), de lunes a viernes; si no hay cambios no hace commit.
+
+### 📅 Historial de 30 días
+- Nuevo botón de calendario: muestra las tasas USD y EUR guardadas en el teléfono (máximo 30 días), con la variación diaria y las etiquetas *Vigente* y *Próx.*
+- [`src/services/history.ts`](src/services/history.ts) guarda cada tasa recibida, sin duplicar fechas, y funciona sin conexión.
+
+### 📱 Pantalla
+- Botón **Actualizar** más grande (44 px de alto, con texto) y botón de calendario del mismo tamaño.
+- Contenido centrado verticalmente.
+- Márgenes seguros: el encabezado ya no queda bajo la barra de estado ni el pie bajo los botones de navegación de Android.
+
+---
+
 ## [1.4.0] - 2026-11-14
 
 ### ✨ Tasas USDT de Binance P2P (opcional)

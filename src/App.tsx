@@ -5,6 +5,8 @@ import { QuickAmounts } from './components/QuickAmounts';
 import { Calculator } from './components/Calculator';
 import { TaxCalculator } from './components/TaxCalculator';
 import { UsdtSwitch } from './components/UsdtSwitch';
+import { HistoryModal } from './components/HistoryModal';
+import { actualizarHistorial, leerHistorial, type EntradaHistorial } from './services/history';
 import { Footer } from './components/Footer';
 import { getLiveRates } from './services/rates';
 import { clasificarTasas, hoyCaracas } from './services/schedule';
@@ -20,6 +22,13 @@ export const App: React.FC = () => {
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
   // Preferencias de usuario
+  // Historial interno de tasas (30 días máx.) y su ventana de calendario
+  const [historial, setHistorial] = useState<EntradaHistorial[]>(() => {
+    const h = leerHistorial();
+    return h.length ? h : actualizarHistorial(getStoredRates());
+  });
+  const [historialAbierto, setHistorialAbierto] = useState(false);
+
   // USDT Binance P2P (opcional, apagado por defecto)
   const [usdtEnabled, setUsdtEnabled] = useState<boolean>(() => Boolean(getStoredPrefs().usdtEnabled));
   const [usdtRefresh, setUsdtRefresh] = useState<UsdtRefresh>(() => getStoredPrefs().usdtRefresh || 'open');
@@ -74,6 +83,7 @@ export const App: React.FC = () => {
     setErrorNotice(null);
     try {
       const result = await getLiveRates();
+      setHistorial(actualizarHistorial(result.rates));
       setRates(result.rates);
       setIsOffline(result.isOffline);
       if (result.errorNotice) {
@@ -252,9 +262,10 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-between selection:bg-emerald-500 selection:text-slate-950">
+    <div className="app-shell min-h-[100dvh] bg-slate-950 flex flex-col items-center selection:bg-emerald-500 selection:text-slate-950">
       {/* Contenedor centralizado para celulares Android y responsive */}
-      <main className="w-full max-w-md mx-auto px-4 py-3 flex-1 flex flex-col gap-2.5">
+      {/* Contenido centrado verticalmente cuando sobra espacio en la pantalla */}
+      <main className="w-full max-w-md mx-auto px-4 py-4 flex-1 flex flex-col justify-center gap-3">
         {/* Banner de instalación Standalone en Android si el navegador lo ofrece */}
         {canInstall && (
           <div className="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/30 animate-in fade-in">
@@ -292,6 +303,7 @@ export const App: React.FC = () => {
           usdt={usdtEnabled ? usdt : undefined}
           usdtLoading={usdtLoading}
           usdtError={usdtEnabled ? usdtError : null}
+          onOpenHistory={() => setHistorialAbierto(true)}
         />
 
         <Calculator
@@ -325,6 +337,8 @@ export const App: React.FC = () => {
 
       {/* Pie de página con créditos requeridos: Desarrollado por RA 2026 */}
       <Footer />
+
+      {historialAbierto && <HistoryModal historial={historial} onClose={() => setHistorialAbierto(false)} />}
     </div>
   );
 };

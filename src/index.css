@@ -36,6 +36,23 @@
   }
 }
 
+/*
+ * Márgenes seguros (v1.5.0). Android 15+ dibuja la app bajo la barra de estado y la
+ * de navegación. Se usa el mayor entre el valor del sistema (env), el que inyecta
+ * Capacitor (--safe-area-inset-*) y un mínimo fijo, para que el encabezado no quede
+ * bajo los íconos de estado ni el pie bajo los botones Atrás/Inicio/Recientes.
+ */
+.app-shell {
+  padding-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px), 28px);
+}
+.app-footer {
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px), 48px) + 8px);
+}
+.app-modal-pad {
+  padding: 16px;
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px), 48px) + 8px);
+}
+
 /* Custom scrollbars for clean mobile appearance */
 ::-webkit-scrollbar {
   width: 6px;
