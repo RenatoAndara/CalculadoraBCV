@@ -5,21 +5,13 @@
   "raw_eur": "1.008,31136740",
   "fecha_valor": "Martes, 17 Noviembre 2026",
   "fecha_valor_iso": "2026-11-17T00:00:00-04:00",
-  "last_updated": "2026-11-17T03:00:10.569828",
+  "last_updated": "2026-11-17T04:51:57.914136",
   "source": "bcv-official",
   "source_name": "BCV Oficial (Directo)",
   "rates": {
     "current": {
-      "label": "Tasa Vigente (Lunes, 16 Noviembre 2026)",
+      "label": "Tasa Vigente (Martes, 17 Noviembre 2026)",
       "short_label": "Vigente Hoy",
-      "fecha_valor": "Lunes, 16 Noviembre 2026",
-      "fecha_valor_iso": "2026-11-16T00:00:00-04:00",
-      "usd": 914.0218,
-      "eur": 1010.56078251
-    },
-    "next": {
-      "label": "Tasa Publicada (Martes, 17 Noviembre 2026)",
-      "short_label": "Próx. Día · Mar 17/11",
       "fecha_valor": "Martes, 17 Noviembre 2026",
       "fecha_valor_iso": "2026-11-17T00:00:00-04:00",
       "usd": 915.7476,
