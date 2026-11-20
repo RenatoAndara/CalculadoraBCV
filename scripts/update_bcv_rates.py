@@ -13,6 +13,7 @@ import os
 import re
 import ssl
 import sys
+import time
 import unicodedata
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -138,14 +139,68 @@ def clasificar_por_fecha(snapshots: list[dict], hoy: str) -> dict:
     return resultado
 
 
+# --- Espera activa de la tasa del día siguiente (v1.5.1) ----------------------
+# GitHub retrasa u omite con frecuencia las ejecuciones programadas: el 20/11/2026
+# el actualizador corrió a las 4:50 pm (antes de la publicación del BCV) y no volvió
+# a correr en horas. Con --esperar, una sola ejecución en la tarde se queda
+# revisando el BCV cada 5 minutos hasta que aparece la tasa del siguiente día hábil.
+VENTANA_INICIO = 15 * 60 + 30   # 3:30 pm, hora de Venezuela
+VENTANA_FIN = 22 * 60           # 10:00 pm, hora de Venezuela
+INTERVALO_SEG = 5 * 60
+
+
+def ahora_caracas() -> datetime:
+    return datetime.now(timezone.utc) - timedelta(hours=4)
+
+
+def debe_esperar(datos_previos: dict, ahora: datetime) -> bool:
+    """Lunes a viernes, entre 3:30 y 10:00 pm, si aún no hay una tasa con fecha posterior a hoy."""
+    if ahora.weekday() > 4:
+        return False
+    minutos = ahora.hour * 60 + ahora.minute
+    if not (VENTANA_INICIO <= minutos < VENTANA_FIN):
+        return False
+    hoy = ahora.strftime("%Y-%m-%d")
+    previos = list(datos_previos.get("history", [])) + [
+        s for s in (datos_previos.get("rates") or {}).values() if isinstance(s, dict)
+    ]
+    return not any((fecha_de(s) or "") > hoy for s in previos)
+
+
+def leer_bcv_con_espera(datos_previos: dict, esperar: bool) -> dict:
+    """Lee el BCV; con espera, repite cada 5 min hasta ver la tasa del día siguiente o cerrar la ventana."""
+    while True:
+        print("Consultando https://bcv.org.ve/ ...", flush=True)
+        try:
+            datos = extract_rates(fetch_bcv_html())
+        except Exception as e:  # noqa: BLE001 - se reintenta dentro de la ventana
+            if not (esperar and debe_esperar(datos_previos, ahora_caracas())):
+                raise
+            print(f"  Fallo temporal ({e}); se reintenta en 5 min.", flush=True)
+            time.sleep(INTERVALO_SEG)
+            continue
+
+        ahora = ahora_caracas()
+        hoy = ahora.strftime("%Y-%m-%d")
+        if not esperar or (fecha_de(datos) or "") > hoy or not debe_esperar(datos_previos, ahora):
+            return datos
+        print(f"  El BCV aún muestra {datos['fecha_valor']}; se revisa de nuevo en 5 min "
+              f"({ahora.strftime('%H:%M')} hora de Venezuela).", flush=True)
+        time.sleep(INTERVALO_SEG)
+
+
 def main():
     repo_root = Path(__file__).resolve().parent.parent
     target_path = repo_root / "public" / "bcv_rates.json"
+    esperar = "--esperar" in sys.argv
 
-    print("Consultando https://bcv.org.ve/ ...")
     try:
-        html = fetch_bcv_html()
-        rates_data = extract_rates(html)
+        datos_previos = json.loads(target_path.read_text(encoding="utf-8")) if target_path.exists() else {}
+    except (OSError, ValueError):
+        datos_previos = {}
+
+    try:
+        rates_data = leer_bcv_con_espera(datos_previos, esperar)
     except Exception as exc:
         print(f"ERROR al consultar BCV: {exc}", file=sys.stderr)
         sys.exit(1)

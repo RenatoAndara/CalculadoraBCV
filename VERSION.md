@@ -4,6 +4,16 @@ Todas las modificaciones notables de este proyecto están documentadas en este a
 
 ---
 
+## [1.5.1] - 2026-11-20
+
+### 🐛 La tasa del siguiente día hábil llegaba tarde (o no llegaba)
+- **Caso:** el viernes 20/11 el BCV publicó la tasa del martes 24 (el lunes era feriado bancario), pero el actualizador había corrido a las 4:50 pm, antes de la publicación, y GitHub no lo volvió a ejecutar en horas pese a tener corridas programadas cada 30 min.
+- **Solución:** [`scripts/update_bcv_rates.py`](scripts/update_bcv_rates.py) tiene un modo `--esperar`. De lunes a viernes entre 3:30 y 10:00 pm, si aún no hay una tasa con fecha posterior a hoy, se queda revisando el BCV **cada 5 minutos** hasta que aparece. Basta con que GitHub inicie una sola ejecución en la tarde.
+- [`update-bcv-rates.yml`](.github/workflows/update-bcv-rates.yml): nueva corrida a las 3:30 pm, grupo de concurrencia (una ejecución a la vez, las demás en cola), límite de 7 h y `git pull --rebase` antes de enviar.
+- Funciona igual con feriados: lo que cuenta es que la fecha valor publicada sea posterior a hoy.
+
+---
+
 ## [1.5.0] - 2026-11-16
 
 ### 🐛 La app no mostraba la tasa del día siguiente ya publicada por el BCV

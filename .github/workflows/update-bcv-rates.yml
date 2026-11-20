@@ -4,9 +4,11 @@ on:
   schedule:
     # Lunes a Viernes a las 09:00, 13:00, 17:00 y 19:00 hora de Venezuela (UTC-4) -> 13, 17, 21, 23 UTC
     - cron: '0 13,17,21,23 * * 1-5'
-    # De 4:00 pm a 9:30 pm hora de Venezuela, cada 30 min (20:00–01:30 UTC): el BCV publica
-    # la tasa del día siguiente en la tarde y GitHub a veces omite ejecuciones programadas,
-    # así que varias oportunidades garantizan que se tome a tiempo. Si no hay cambios, no se hace commit.
+    # Tarde (lun–vie): desde las 3:30 pm hora de Venezuela (19:30 UTC). Basta que GitHub
+    # inicie UNA de estas ejecuciones: el script se queda revisando el BCV cada 5 min hasta
+    # que aparece la tasa del siguiente día hábil (o hasta las 10 pm). Las demás quedan en
+    # cola por el grupo de concurrencia y terminan al instante si la tasa ya se guardó.
+    - cron: '30 19 * * 1-5'
     - cron: '*/30 20-23 * * 1-5'
     - cron: '*/30 0-1 * * 2-6'
     # 00:05 hora de Venezuela (04:05 UTC) todos los días: reclasifica vigente/próximo al cambiar el día
@@ -16,10 +18,16 @@ on:
 permissions:
   contents: write
 
+# Una sola ejecución a la vez: evita commits simultáneos mientras una espera al BCV
+concurrency:
+  group: tasas-bcv
+  cancel-in-progress: false
+
 jobs:
   update-rates:
     name: Extraer y Actualizar Tasas BCV
     runs-on: ubuntu-latest
+    timeout-minutes: 420
 
     steps:
       - name: Descargar Código
@@ -32,7 +40,7 @@ jobs:
 
       - name: Ejecutar Extractor BCV
         id: bcv
-        run: python scripts/update_bcv_rates.py
+        run: python scripts/update_bcv_rates.py --esperar
 
       - name: Verificar y Guardar Cambios
         run: |
@@ -41,6 +49,7 @@ jobs:
             git config --local user.name "github-actions[bot]"
             git add public/bcv_rates.json
             git commit -m "chore(tasas): actualizar tasas oficiales BCV (USD: ${{ steps.bcv.outputs.usd }} | EUR: ${{ steps.bcv.outputs.eur }}) [skip ci]"
+            git pull --rebase --quiet origin main
             git push
             echo "Tasas actualizadas y enviadas al repositorio."
           else
