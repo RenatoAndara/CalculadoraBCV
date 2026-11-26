@@ -1,11 +1,11 @@
 {
-  "usd": 924.3534,
-  "eur": 1011.7325269,
-  "raw_usd": "924,35340000",
-  "raw_eur": "1.011,73252690",
-  "fecha_valor": "Jueves, 26 Noviembre 2026",
-  "fecha_valor_iso": "2026-11-26T00:00:00-04:00",
-  "last_updated": "2026-11-26T13:44:54.259225",
+  "usd": 926.3592,
+  "eur": 1016.86449384,
+  "raw_usd": "926,35920000",
+  "raw_eur": "1.016,86449384",
+  "fecha_valor": "Viernes, 27 Noviembre 2026",
+  "fecha_valor_iso": "2026-11-27T00:00:00-04:00",
+  "last_updated": "2026-11-26T22:01:39.263899",
   "source": "bcv-official",
   "source_name": "BCV Oficial (Directo)",
   "rates": {
@@ -16,6 +16,14 @@
       "fecha_valor_iso": "2026-11-26T00:00:00-04:00",
       "usd": 924.3534,
       "eur": 1011.7325269
+    },
+    "next": {
+      "label": "Tasa Publicada (Viernes, 27 Noviembre 2026)",
+      "short_label": "Próx. Día · Vie 27/11",
+      "fecha_valor": "Viernes, 27 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-27T00:00:00-04:00",
+      "usd": 926.3592,
+      "eur": 1016.86449384
     }
   },
   "history": [
@@ -102,6 +110,12 @@
       "fecha_valor_iso": "2026-11-26T00:00:00-04:00",
       "usd": 924.3534,
       "eur": 1011.7325269
+    },
+    {
+      "fecha_valor": "Viernes, 27 Noviembre 2026",
+      "fecha_valor_iso": "2026-11-27T00:00:00-04:00",
+      "usd": 926.3592,
+      "eur": 1016.86449384
     }
   ]
 }
